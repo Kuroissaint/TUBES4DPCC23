@@ -50,8 +50,8 @@ pipeline {
                     // Karena Windows tidak punya 'sed', kita gunakan PowerShell
                     powershell "((Get-Content k8s/deployment.yaml) -replace 'my-registry/${SERVICE_NAME}:latest', '${DOCKER_IMAGE}') | Set-Content k8s/deployment.yaml"
                     
-                    bat "kubectl apply -f k8s/"
-                    bat "kubectl rollout status deployment/${SERVICE_NAME} --timeout=90s"
+                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" apply -f k8s/'
+                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" rollout status deployment/translog-service --timeout=90s'
                 }
             }
         }
