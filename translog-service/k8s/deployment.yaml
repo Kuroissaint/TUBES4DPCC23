@@ -5,7 +5,7 @@ metadata:
   labels:
     app: translog-service
 spec:
-  replicas: 1 # Set ke 1 dulu untuk hemat resource lokal
+  replicas: 1
   selector:
     matchLabels:
       app: translog-service
@@ -16,14 +16,14 @@ spec:
     spec:
       containers:
       - name: translog-service
-        image: my-registry/translog-service:latest # Nanti di-replace oleh Jenkins
+        image: my-registry/translog-service:latest
         ports:
-        - containerPort: 8008
+        - containerPort: 8005
         env:
         - name: DB_HOST
           value: "db-postgres-service"
         - name: DB_NAME
-          value: "db_shopping_order"
+          value: "db_transport_order"
         - name: DB_USER
           value: "postgres"
         - name: DB_PASSWORD
