@@ -16,7 +16,8 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 dir("${SERVICE_NAME}") {
-                    sh 'go test -v ./... -skip Functional' 
+                    // Ganti sh menjadi bat
+                    bat 'go test -v ./... -skip Functional' 
                 }
             }
         }
@@ -24,11 +25,12 @@ pipeline {
         stage('3. Build & Push Image') {
             steps {
                 dir("${SERVICE_NAME}") {
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    bat "docker build -t ${DOCKER_IMAGE} ."
                     
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
-                        sh "docker push ${DOCKER_IMAGE}"
+                        // Di CMD Windows, variabel dipanggil dengan %VAR% dan hindari spasi sebelum tanda pipe (|)
+                        bat "echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin"
+                        bat "docker push ${DOCKER_IMAGE}"
                     }
                 }
             }
@@ -37,7 +39,7 @@ pipeline {
         stage('4. Functional Tests') {
             steps {
                 dir("${SERVICE_NAME}") {
-                    sh 'go test -v -run Functional ./...'
+                    bat 'go test -v -run Functional ./...'
                 }
             }
         }
@@ -45,9 +47,11 @@ pipeline {
         stage('5. Deploy & Verify K8s') {
             steps {
                 dir("${SERVICE_NAME}") {
-                    sh "sed -i 's|my-registry/${SERVICE_NAME}:latest|${DOCKER_IMAGE}|g' k8s/deployment.yaml"
-                    sh "kubectl apply -f k8s/"
-                    sh "kubectl rollout status deployment/${SERVICE_NAME} --timeout=90s"
+                    // Karena Windows tidak punya 'sed', kita gunakan PowerShell
+                    powershell "((Get-Content k8s/deployment.yaml) -replace 'my-registry/${SERVICE_NAME}:latest', '${DOCKER_IMAGE}') | Set-Content k8s/deployment.yaml"
+                    
+                    bat "kubectl apply -f k8s/"
+                    bat "kubectl rollout status deployment/${SERVICE_NAME} --timeout=90s"
                 }
             }
         }
