@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     stages {
-        // Poin 1: Checkout Repo
+        // Poin 1: Checkout Repo (Tetap di luar karena menarik seluruh Git)
         stage('1. Checkout Repo') {
             steps {
                 checkout scm
@@ -13,8 +13,10 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    echo 'Running Unit Tests for Finance Service...'
-                    sh 'go test -v ./...'
+                    echo 'Running Unit Tests for finance Service...'
+                    dir('finance-service') {
+                        sh 'go test -v ./...'
+                    }
                 }
             }
         }
@@ -22,14 +24,18 @@ pipeline {
         // Poin 3: Lint/Vet
         stage('3. Lint/Vet') {
             steps {
-                sh 'go vet ./...'
+                dir('finance-service') {
+                    sh 'go vet ./...'
+                }
             }
         }
 
         // Poin 4: Build Image (Lokal)
         stage('4. Build Image') {
             steps {
-                sh 'docker build -t finance-service:latest .'
+                dir('finance-service') {
+                    sh 'docker build -t finance-service:latest .'
+                }
             }
         }
 
@@ -37,8 +43,10 @@ pipeline {
         stage('5. Functional Tests') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    echo 'Running Functional Tests for Finance Service...'
-                    sh 'go test -v -tags=functional ./...'
+                    echo 'Running Functional Tests for finance Service...'
+                    dir('finance-service') {
+                        sh 'go test -v -tags=functional ./...'
+                    }
                 }
             }
         }
@@ -53,7 +61,9 @@ pipeline {
         // Poin 7: Deploy di Kubernetes
         stage('7. Deploy di Kubernetes') {
             steps {
-                sh 'kubectl apply -f k8s/finance-deploy.yaml'
+                dir('finance-service') {
+                    sh 'kubectl apply -f k8s/finance-deploy.yaml'
+                }
             }
         }
 
