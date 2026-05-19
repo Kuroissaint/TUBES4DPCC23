@@ -67,7 +67,7 @@ pipeline {
         stage('7. Deploy di Kubernetes') {
             steps {
                 dir('finance-service') {
-                    sh 'kubectl apply --kubeconfig=C:/Users/ACER/.kube/config -f k8s/pricing-deploy.yaml'
+                    sh 'kubectl apply --kubeconfig=C:/Users/ACER/.kube/config -f k8s/finance-deploy.yaml'
                 }
             }
         }
