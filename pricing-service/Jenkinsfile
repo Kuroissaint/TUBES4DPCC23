@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     stages {
-        // Poin 1: Checkout Repo
+        // Poin 1: Checkout Repo (Tetap di luar karena menarik seluruh Git)
         stage('1. Checkout Repo') {
             steps {
                 checkout scm
@@ -14,7 +14,9 @@ pipeline {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     echo 'Running Unit Tests for Pricing Service...'
-                    sh 'go test -v ./...'
+                    dir('pricing-service') {
+                        sh 'go test -v ./...'
+                    }
                 }
             }
         }
@@ -22,14 +24,18 @@ pipeline {
         // Poin 3: Lint/Vet
         stage('3. Lint/Vet') {
             steps {
-                sh 'go vet ./...'
+                dir('pricing-service') {
+                    sh 'go vet ./...'
+                }
             }
         }
 
         // Poin 4: Build Image (Lokal)
         stage('4. Build Image') {
             steps {
-                sh 'docker build -t pricing-service:latest .'
+                dir('pricing-service') {
+                    sh 'docker build -t pricing-service:latest .'
+                }
             }
         }
 
@@ -38,7 +44,9 @@ pipeline {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     echo 'Running Functional Tests for Pricing Service...'
-                    sh 'go test -v -tags=functional ./...'
+                    dir('pricing-service') {
+                        sh 'go test -v -tags=functional ./...'
+                    }
                 }
             }
         }
@@ -53,7 +61,9 @@ pipeline {
         // Poin 7: Deploy di Kubernetes
         stage('7. Deploy di Kubernetes') {
             steps {
-                sh 'kubectl apply -f k8s/pricing-deploy.yaml'
+                dir('pricing-service') {
+                    sh 'kubectl apply -f k8s/pricing-deploy.yaml'
+                }
             }
         }
 
