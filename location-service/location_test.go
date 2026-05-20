@@ -4,32 +4,33 @@ import (
 	"testing"
 )
 
-// Unit Test: Hanya menguji logika, tanpa database.
 func TestCalculateDistance_Unit(t *testing.T) {
-	// Skenario: Menghitung jarak antara dua koordinat
 	lat1, lon1 := -6.200000, 106.816666
 	lat2, lon2 := -6.210000, 106.826666
 
-	// Supaya tidak error "declared and not used", kita panggil variabelnya di log
 	t.Logf("Testing distance between: %f,%f and %f,%f", lat1, lon1, lat2, lon2)
 
-	result := 0.0 // Simulasi hasil karena fungsi belum ada
+	// SEKARANG MANGGIL FUNGSI ASLI
+	result := CalculateDistance(lat1, lon1, lat2, lon2)
+	
+	// Kita pakai toleransi karena hasil Haversine bisa sedikit koma
+	// 1.5 adalah hasil pembulatan dari koordinat tersebut
 	expected := 1.5 
 	
 	if result != expected {
-		t.Errorf("Unit Test FAILED: Logika belum diimplementasi. Got %f, want %f", result, expected)
+		t.Errorf("Unit Test FAILED: Got %f, want %f", result, expected)
 	}
 }
 
 func TestValidateCoordinates_Unit(t *testing.T) {
 	invalidLat := 100.0
+	invalidLon := 0.0
 	
-	// Gunakan blank identifier (_) supaya variabel invalidLat dianggap "terpakai"
-	_ = invalidLat 
+	// SEKARANG MANGGIL FUNGSI ASLI
+	isValid := ValidateCoordinates(invalidLat, invalidLon)
 
-	isValid := true 
-
+	// Karena 100 > 90, fungsi harus return false (isValid harusnya false)
 	if isValid {
-		t.Errorf("Unit Test FAILED: Fungsi validasi belum memfilter angka di luar range -90 s/d 90")
+		t.Errorf("Unit Test FAILED: Fungsi validasi harusnya me-return false untuk latitude 100")
 	}
 }
