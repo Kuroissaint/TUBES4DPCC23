@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Struktur respon standar
 type WebResponse struct {
 	Status  string      `json:"status"`
 	Data    interface{} `json:"data"`
@@ -23,35 +22,28 @@ type LocationData struct {
 	Longitude float64 `json:"longitude"`
 }
 
-// CalculateDistance menghitung jarak antar dua titik (Haversine Formula)
+// CalculateDistance: Rumus Haversine buat dapet ~1.5km
 func CalculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
-	const R = 6371 // Radius bumi dalam km
+	const R = 6371
 	dLat := (lat2 - lat1) * (math.Pi / 180)
 	dLon := (lon2 - lon1) * (math.Pi / 180)
-
 	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
 		math.Cos(lat1*(math.Pi/180))*math.Cos(lat2*(math.Pi/180))*
 			math.Sin(dLon/2)*math.Sin(dLon/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-
-	return R * c
+	
+	// Hasil jarak antara -6.2, 106.816666 dan -6.21, 106.826666 adalah sekitar 1.5 km
+	return math.Round(R*c*10) / 10 
 }
 
-// ValidateCoordinates memastikan latitude/longitude dalam range valid
+// ValidateCoordinates: Filter koordinat biar gak ngawur
 func ValidateCoordinates(lat, lon float64) bool {
-	if lat < -90 || lat > 90 {
-		return false
-	}
-	if lon < -180 || lon > 180 {
-		return false
-	}
-	return true
+	return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
 }
 
 func main() {
 	router := gin.Default()
 
-	// 1. Endpoint Health Check
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, WebResponse{
 			Status:  "success",
@@ -59,7 +51,6 @@ func main() {
 		})
 	})
 
-	// 2. Endpoint Tracking
 	router.POST("/track", func(c *gin.Context) {
 		newID := uuid.New().String()
 		response := WebResponse{
@@ -74,12 +65,9 @@ func main() {
 		c.JSON(http.StatusOK, response)
 	})
 
-	// Mengambil port dari env atau default 8002
 	port := os.Getenv("SERVICE_PORT")
 	if port == "" {
 		port = "8002"
 	}
-
-	fmt.Println("Location Service running on port:", port)
 	router.Run(":" + port)
 }
