@@ -2,7 +2,7 @@ package main
 
 import (
 	"testing"
-	"pricing-service/mocks" // Sesuaikan dengan nama module go.mod kamu
+	"pricing-service/mocks" 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -11,16 +11,17 @@ func TestCalculateFinalPrice_Unit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Membuat mock repository tanpa menyentuh DB asli
 	mockRepo := mocks.NewMockPromoRepository(ctrl)
 
-	// Setup ekspektasi tiruan
+	// Ekspektasi: Kode DISKON10 akan memberikan potongan 10%
 	mockRepo.EXPECT().GetDiscountByCode("DISKON10").Return(10, nil).AnyTimes()
 
-	// Jalankan service menggunakan mock
 	service := NewPricingService(mockRepo)
-	_, _ = service.CalculateFinalPrice(100000, "DISKON10")
+	
+	// Hitung harga akhir: 100000 dipotong 10%
+	finalPrice, err := service.CalculateFinalPrice(100000, "DISKON10")
 
-	// Sengaja di-failed kan karena kode belum selesai
-	assert.Fail(t, "Unit test sengaja gagal: Implementasi kode utama belum selesai.")
+	assert.NoError(t, err)
+	// Pastikan menggunakan int(90000) agar seragam dengan return fungsi
+	assert.Equal(t, int(90000), finalPrice, "Harga akhir harusnya 90000 setelah diskon 10%")
 }
