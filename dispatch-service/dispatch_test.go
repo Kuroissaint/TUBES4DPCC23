@@ -4,34 +4,42 @@ import (
 	"testing"
 )
 
-// Unit Test: Menguji logika pencarian driver terdekat
 func TestFindNearestDriver_Unit(t *testing.T) {
-	// Skenario: Mencari driver di sekitar titik koordinat tertentu
-	orderLat, orderLon := -6.200000, 106.816666
-	
-	// Kita panggil di log agar variabel "terpakai" dan tidak error build
-	t.Logf("Mencari driver terdekat untuk lokasi: %f, %f", orderLat, orderLon)
+	lat := -6.200000
+	lng := 106.816666
+	t.Logf("Mencari driver terdekat untuk lokasi: %f, %f", lat, lng)
 
-	// Simulasi: Karena algoritmanya belum dibuat, kita set hasil kosong
-	foundDriverID := "" 
+	// Memanggil fungsi asli dari main.go
+	driver, err := FindNearestDriver(lat, lng)
+	if err != nil {
+		t.Fatalf("Fungsi error: %v", err)
+	}
 
-	if foundDriverID == "" {
-		// Dibuat FAILED sesuai permintaan tugas tahap 2
-		t.Errorf("Unit Test FAILED: Algoritma pencarian driver (Matching) belum diimplementasi")
+	// Memastikan data driver terdekat berhasil ditemukan
+	if driver.ID == "" {
+		t.Errorf("Unit Test FAILED: ID Driver kosong")
+	}
+	if driver.Name != "Alex Marquez" {
+		t.Errorf("Unit Test FAILED: Nama driver tidak sesuai, dapat: %s", driver.Name)
 	}
 }
 
-// Unit Test: Menguji status penugasan driver
 func TestAssignDriverStatus_Unit(t *testing.T) {
-	statusAwal := "pending"
-	
-	// Kita gunakan blank identifier (_) agar statusAwal dianggap terpakai
-	_ = statusAwal
+	driverID := "DRV-001"
+	status := "pending"
 
-	// Harusnya status berubah jadi "assigned" setelah dipasangkan
-	statusAkhir := "pending" 
+	// Memanggil fungsi asli dari main.go
+	driver, err := AssignDriver(driverID, status)
+	if err != nil {
+		t.Fatalf("Fungsi error: %v", err)
+	}
 
-	if statusAkhir != "assigned" {
-		t.Errorf("Unit Test FAILED: Logika penugasan gagal, status tetap: %s", statusAkhir)
+	// Memastikan status berhasil berubah menjadi 'assigned' dan tidak tertahan di 'pending'
+	if driver.Status == "pending" {
+		t.Fatalf("Unit Test FAILED: Logika penugasan gagal, status tetap: pending")
+	}
+
+	if driver.Status != "assigned" {
+		t.Errorf("Expect status 'assigned', got '%s'", driver.Status)
 	}
 }
