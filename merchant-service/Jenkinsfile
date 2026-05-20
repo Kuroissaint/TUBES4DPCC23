@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+
+    environment {
+        // Ganti sesuai nama service masing-masing
+        SERVICE_NAME = "{{NAMA_SERVICE}}" 
+        DOCKER_IMAGE = "my-registry/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('1. Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Unit Test') {
+            steps {
+                sh 'go test ./... -v'
+            }
+        }
+
+        stage('3. Build & Push Image') {
+            steps {
+                script {
+                    // Build docker image
+                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    // Push ke registry (opsional, sesuaikan dengan env kalian)
+                    // sh "docker push ${DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('4. Build & Push Image') {
+            steps {
+                dir("${SERVICE_NAME}") {
+                    // Tahap 4: Build Image Lokal
+                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    
+                    // Tahap 6: Push Image ke Registry (Docker Hub)
+                    // Asumsi: Credentials Docker Hub sudah diset di Jenkins dengan ID 'dockerhub-creds'
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                        sh "docker push ${DOCKER_IMAGE}"
+                    }
+                }
+            }
+        }
+
+        stage('5. Functional Tests') {
+            steps {
+                dir("${SERVICE_NAME}") {
+                    // Tahap 5: Fungsional Test
+                    sh 'go test -v -run Functional ./...'
+                }
+            }
+        }
+
+        stage('6. Deploy & Verify K8s') {
+            steps {
+                dir("${SERVICE_NAME}") {
+                    // Tahap 7: Deploy ke Kubernetes
+                    // Mengubah placeholder image di deployment.yaml menjadi image terbaru
+                    sh "sed -i 's|my-registry/${SERVICE_NAME}:latest|${DOCKER_IMAGE}|g' k8s/deployment.yaml"
+                    sh "kubectl apply -f k8s/"
+                    
+                    // Tahap 8: Verify (Memastikan Pod beneran jalan/ready)
+                    sh "kubectl rollout status deployment/${SERVICE_NAME} --timeout=90s"
+                }
+            }
+        }
+
+    post {
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
+        }
+    }
+}

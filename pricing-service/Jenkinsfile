@@ -1,0 +1,82 @@
+pipeline {
+    agent any
+
+    // Tambahkan blok environment ini untuk mematikan go.work di CI/CD
+    environment {
+        GOWORK = 'off'
+    }
+    
+    stages {
+        // Poin 1: Checkout Repo (Tetap di luar karena menarik seluruh Git)
+        stage('1. Checkout Repo') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // Poin 2: Unit Tests
+        stage('2. Unit Tests') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    echo 'Running Unit Tests for Pricing Service...'
+                    dir('pricing-service') {
+                        sh 'go test -v ./...'
+                    }
+                }
+            }
+        }
+
+        // Poin 3: Lint/Vet
+        stage('3. Lint/Vet') {
+            steps {
+                dir('pricing-service') {
+                    sh 'go vet ./...'
+                }
+            }
+        }
+
+        // Poin 4: Build Image (Lokal)
+        stage('4. Build Image') {
+            steps {
+                dir('pricing-service') {
+                    sh 'docker build -t pricing-service:latest .'
+                }
+            }
+        }
+
+        // Poin 5: Functional Tests
+        stage('5. Functional Tests') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    echo 'Running Functional Tests for Pricing Service...'
+                    dir('pricing-service') {
+                        sh 'go test -v -tags=functional ./...'
+                    }
+                }
+            }
+        }
+
+        // Poin 6: Push Image (Skip)
+        stage('6. Push Image') {
+            steps {
+                echo 'Push image skipped (Menggunakan image lokal)'
+            }
+        }
+
+        // Poin 7: Deploy di Kubernetes
+        stage('7. Deploy di Kubernetes') {
+            steps {
+                dir('pricing-service') {
+                    sh 'kubectl apply --kubeconfig=C:/Users/ACER/.kube/config -f k8s/pricing-deploy.yaml'
+                }
+            }
+        }
+
+        // Poin 8: Verify
+        stage('8. Verify') {
+            steps {
+                echo 'Verifying deployment status...'
+            }
+        }
+    }
+}

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: merchant-service
+  labels:
+    app: merchant-service
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: merchant-service
+
+  template:
+    metadata:
+      labels:
+        app: merchant-service
+
+    spec:
+      containers:
+      - name: merchant-service
+        image: firdaaridzkii/merchant-service:latest
+
+        ports:
+        - containerPort: 8081
+
+        env:
+        - name: DB_HOST
+          value: "db-postgres-service"
+
+        - name: DB_NAME
+          value: "db_merchant_service"
+
+        - name: DB_USER
+          value: "postgres"
+
+        - name: DB_PASSWORD
+          value: "password"

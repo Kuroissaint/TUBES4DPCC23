@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{SERVICE_NAME}}-Service
+spec:
+  selector:
+    app: {{SERVICE_NAME}}
+  ports:
+    - protocol: TCP
+      port: {{SERVICE_PORT}}      # Port yang diakses dari luar
+      targetPort: {{SERVICE_PORT}} # Port di dalam container
+  type: ClusterIP

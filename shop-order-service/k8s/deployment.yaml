@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop-order-service
+  labels:
+    app: shop-order-service
+spec:
+  replicas: 1 # Set ke 1 dulu untuk hemat resource lokal
+  selector:
+    matchLabels:
+      app: shop-order-service
+  template:
+    metadata:
+      labels:
+        app: shop-order-service
+    spec:
+      containers:
+      - name: shop-order-service
+        image: my-registry/shop-order-service:latest # Nanti di-replace oleh Jenkins
+        ports:
+        - containerPort: 8009
+        env:
+        - name: DB_HOST
+          value: "db-postgres-service"
+        - name: DB_NAME
+          value: "db_shopping_order"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          value: "password"

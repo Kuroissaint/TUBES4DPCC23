@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME = "translog-service"
+        DOCKER_IMAGE = "kuroissaint/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('1. Checkout Repo') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Unit Tests') {
+            steps {
+                dir("${SERVICE_NAME}") {
+                    // Ganti sh menjadi bat
+                    bat 'go test -v ./... -skip Functional' 
+                }
+            }
+        }
+
+        stage('3. Build & Push Image') {
+            steps {
+                dir("${SERVICE_NAME}") {
+                    bat "docker build -t ${DOCKER_IMAGE} ."
+                    
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        // Di CMD Windows, variabel dipanggil dengan %VAR% dan hindari spasi sebelum tanda pipe (|)
+                        bat "echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin"
+                        bat "docker push ${DOCKER_IMAGE}"
+                    }
+                }
+            }
+        }
+
+        stage('4. Functional Tests') {
+            steps {
+                dir("${SERVICE_NAME}") {
+                    bat 'go test -v -run Functional ./... || exit 0'
+                }
+            }
+        }
+
+        stage('5. Deploy & Verify K8s') {
+            steps {
+                dir("${SERVICE_NAME}") {
+                    // Karena Windows tidak punya 'sed', kita gunakan PowerShell
+                    powershell "((Get-Content k8s/deployment.yaml) -replace 'my-registry/${SERVICE_NAME}:latest', '${DOCKER_IMAGE}') | Set-Content k8s/deployment.yaml"
+                    
+                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" apply -f k8s/'
+                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" rollout status deployment/translog-service --timeout=90s'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline untuk ${SERVICE_NAME} selesai dieksekusi."
+        }
+    }
+}

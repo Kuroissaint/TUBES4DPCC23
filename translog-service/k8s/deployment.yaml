@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: translog-service
+  labels:
+    app: translog-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: translog-service
+  template:
+    metadata:
+      labels:
+        app: translog-service
+    spec:
+      containers:
+      - name: translog-service
+        image: my-registry/translog-service:latest
+        ports:
+        - containerPort: 8005
+        env:
+        - name: DB_HOST
+          value: "db-postgres-service"
+        - name: DB_NAME
+          value: "db_transport_order"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          value: "password"

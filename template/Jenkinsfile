@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    environment {
+        // Ganti sesuai nama service masing-masing
+        SERVICE_NAME = "{{NAMA_SERVICE}}" 
+        DOCKER_IMAGE = "my-registry/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('1. Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Unit Test') {
+            steps {
+                sh 'go test ./... -v'
+            }
+        }
+
+        stage('3. Build & Push Image') {
+            steps {
+                script {
+                    // Build docker image
+                    sh "docker build -t ${DOCKER_IMAGE} ."
+                    // Push ke registry (opsional, sesuaikan dengan env kalian)
+                    // sh "docker push ${DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('4. Functional Test') {
+            steps {
+                // Jalankan test yang butuh DB lokal/container
+                sh 'go test -tags=functional ./...'
+            }
+        }
+
+        stage('5. Deploy to Kubernetes') {
+            steps {
+                script {
+                    // Update manifest k8s dengan image terbaru dan apply
+                    sh "kubectl apply -f k8s/"
+                    sh "kubectl rollout restart deployment/${SERVICE_NAME}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
+        }
+    }
+}
