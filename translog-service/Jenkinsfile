@@ -25,11 +25,16 @@ pipeline {
         stage('3. Build & Push Image') {
             steps {
                 dir("${SERVICE_NAME}") {
-                    bat "docker build -t ${DOCKER_IMAGE} ."
-                    
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        // Di CMD Windows, variabel dipanggil dengan %VAR% dan hindari spasi sebelum tanda pipe (|)
+                    // PENTING: withCredentials menaungi SEMUA proses dari awal sampai akhir
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        
+                        // 1. LOGIN DULUAN! Biar Docker dikasih akses pakai password baru
                         bat "echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin"
+                        
+                        // 2. SETELAH LOGIN, baru boleh Build (download golang:alpine)
+                        bat "docker build -t ${DOCKER_IMAGE} ."
+                        
+                        // 3. Terakhir Push ke Docker Hub
                         bat "docker push ${DOCKER_IMAGE}"
                     }
                 }
