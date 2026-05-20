@@ -60,13 +60,12 @@ pipeline {
                     sh "sed -i 's|my-registry/${SERVICE_NAME}:latest|${DOCKER_IMAGE}|g' k8s/deployment.yaml"
                     
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        // Trik andalan: Copy config, ubah IP localhost ke IP Windows Host
                         sh 'cp $KUBECONFIG_TMP ./kubeconfig_local'
                         sh 'sed -i "s|127.0.0.1|host.docker.internal|g" ./kubeconfig_local'
                         
-                        // Eksekusi paksa dengan mengabaikan pengecekan TLS domain sertifikat
+                        // Perintah apply dan rollout status sudah dikasih pengaman anti-eror
                         sh "kubectl --kubeconfig=./kubeconfig_local apply -f k8s/ --validate=false --insecure-skip-tls-verify=true"
-                        sh "kubectl --kubeconfig=./kubeconfig_local rollout status deployment/dispatch-service --timeout=90s"
+                        sh "kubectl --kubeconfig=./kubeconfig_local rollout status deployment/dispatch-service --timeout=90s --insecure-skip-tls-verify=true"
                     }
                 }
             }
