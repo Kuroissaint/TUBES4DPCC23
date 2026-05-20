@@ -56,7 +56,8 @@ pipeline {
         stage('7. Deploy di Kubernetes') {
             steps {
                 dir('dispatch-service') {
-                    sh 'kubectl apply -f k8s/'
+                    // Menambahkan --validate=false agar tidak perlu akses ke API server untuk validasi
+                    sh 'kubectl apply -f k8s/ --validate=false'
                 }
             }
         }
