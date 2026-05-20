@@ -4,6 +4,7 @@ pipeline {
     environment {
         SERVICE_NAME = "review-rating-service" 
         DOCKER_IMAGE = "my-registry/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        GOWORK = 'off'
     }
 
     stages {
@@ -16,7 +17,7 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 dir('reviewrating-service') {
-                    bat 'set GOWORK=off && go test ./... -v'
+                    bat 'go test ./... -v'
                 }
             }
         }
@@ -24,7 +25,7 @@ pipeline {
         stage('3. Lint / Vet') {
             steps {
                 dir('reviewrating-service') {
-                        bat 'set GOWORK=off && go vet ./...'
+                        bat 'go vet ./...'
                 }
             }
         }
@@ -40,7 +41,7 @@ pipeline {
         stage('5. Functional Tests') {
             steps {
                 dir('reviewrating-service') {
-                    bat 'set GOWORK=off && go test -tags=functional ./... -v'
+                    bat 'go test -tags=functional ./... -v'
                 }
             }
         }
