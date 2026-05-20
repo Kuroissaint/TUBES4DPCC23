@@ -1,17 +1,20 @@
 pipeline {
     agent any
 
+    tools {
+        // Mengarahkan Jenkins agar menggunakan nama konfigurasi Go yang tadi kita buat
+        go 'go-1.21'
+    }
+
     stages {
         stage('1. Checkout Repo') {
             steps {
-                // Jenkins otomatis melakukan checkout repo utama ke workspace
                 echo 'Repository checked out successfully.'
             }
         }
 
         stage('2. Unit Tests') {
             steps {
-                // Masuk ke folder service sebelum run test
                 dir('dispatch-service') {
                     sh 'go test ./... -v'
                 }
