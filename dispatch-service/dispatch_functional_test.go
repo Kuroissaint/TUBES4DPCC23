@@ -20,7 +20,7 @@ func TestDispatchDBConnection_Functional(t *testing.T) {
 		dbName = "db_dispatch" // Nama DB khusus service ini
 	}
 
-	dbUser := "postgres"
+	dbUser := "postgresLocal"
 	dbPass := "123"
 	dbHost := "host.docker.internal"
 
