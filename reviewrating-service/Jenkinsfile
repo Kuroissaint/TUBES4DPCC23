@@ -15,25 +15,33 @@ pipeline {
 
         stage('2. Unit Tests') {
             steps {
-                bat 'go test ./... -v'
+                dir('reviewrating-service') {
+                    bat 'go test ./... -v'
+                }
             }
         }
 
         stage('3. Lint / Vet') {
             steps {
-                bat 'go vet ./...'
+                dir('reviewrating-service') {
+                        bat 'go vet ./...'
+                }
             }
         }
 
         stage('4. Build Image (Lokal)') {
             steps {
-                bat "docker build -t ${DOCKER_IMAGE} ."
+                dir('reviewrating-service') {
+                        bat "docker build -t ${DOCKER_IMAGE} ."
+                }
             }
         }
 
         stage('5. Functional Tests') {
             steps {
-                bat 'go test -tags=functional ./... -v'
+                dir('reviewrating-service') {
+                    bat 'go test -tags=functional ./... -v'
+                }
             }
         }
 
@@ -45,8 +53,10 @@ pipeline {
 
         stage('7. Deploy di Kubernetes') {
             steps {
-                bat "kubectl apply -f k8s/"
-                bat "kubectl rollout restart deployment/${SERVICE_NAME}"
+                dir('reviewrating-service') {
+                    bat "kubectl apply -f k8s/"
+                    bat "kubectl rollout restart deployment/${SERVICE_NAME}"
+                }
             }
         }
 
