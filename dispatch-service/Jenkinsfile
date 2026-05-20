@@ -56,7 +56,9 @@ pipeline {
         stage('7. Deploy di Kubernetes') {
             steps {
                 dir('dispatch-service') {
-                    // Menambahkan --validate=false agar tidak perlu akses ke API server untuk validasi
+                    // Menyalin config lokal ke container Jenkins agar kubectl tahu alamat kluster
+                    sh 'mkdir -p ~/.kube'
+                    sh 'cp /var/jenkins_home/workspace/config ~/.kube/config' // Pastikan file config ada di path ini
                     sh 'kubectl apply -f k8s/ --validate=false'
                 }
             }
