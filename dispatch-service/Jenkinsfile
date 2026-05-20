@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     tools {
-        // Mengarahkan Jenkins agar menggunakan nama konfigurasi Go yang tadi kita buat
         go 'go-1.21'
     }
 
@@ -16,7 +15,8 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 dir('dispatch-service') {
-                    sh 'go test ./... -v'
+                    // Ditambahkan GOWORK=off agar tidak bentrok dengan go.work kelompok
+                    sh 'GOWORK=off go test ./... -v'
                 }
             }
         }
@@ -24,7 +24,7 @@ pipeline {
         stage('3. Lint/Vet') {
             steps {
                 dir('dispatch-service') {
-                    sh 'go vet ./...'
+                    sh 'GOWORK=off go vet ./...'
                 }
             }
         }
@@ -40,7 +40,7 @@ pipeline {
         stage('5. Functional Tests') {
             steps {
                 dir('dispatch-service') {
-                    sh 'go test -tags=functional ./... -v'
+                    sh 'GOWORK=off go test -tags=functional ./... -v'
                 }
             }
         }
@@ -48,7 +48,6 @@ pipeline {
         stage('6. Push Image') {
             steps {
                 echo 'Skipping push image for local development...'
-                // sh 'docker push dispatch-service:latest'
             }
         }
 

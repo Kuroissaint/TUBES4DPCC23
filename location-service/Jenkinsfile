@@ -15,7 +15,7 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 dir('location-service') {
-                    sh 'go test ./... -v'
+                    sh 'GOWORK=off go test ./... -v'
                 }
             }
         }
@@ -23,7 +23,7 @@ pipeline {
         stage('3. Lint/Vet') {
             steps {
                 dir('location-service') {
-                    sh 'go vet ./...'
+                    sh 'GOWORK=off go vet ./...'
                 }
             }
         }
@@ -39,7 +39,7 @@ pipeline {
         stage('5. Functional Tests') {
             steps {
                 dir('location-service') {
-                    sh 'go test -tags=functional ./... -v'
+                    sh 'GOWORK=off go test -tags=functional ./... -v'
                 }
             }
         }
@@ -47,7 +47,6 @@ pipeline {
         stage('6. Push Image') {
             steps {
                 echo 'Skipping push image for local development...'
-                // sh 'docker push location-service:latest'
             }
         }
 
