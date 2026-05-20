@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         SERVICE_NAME = "review-rating-service" 
-        DOCKER_IMAGE = "firdaaridzkii/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        DOCKER_IMAGE = "rifadanindra/${SERVICE_NAME}:${env.BUILD_NUMBER}"
         GOWORK = 'off'
     }
 
