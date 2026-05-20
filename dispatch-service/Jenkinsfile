@@ -57,16 +57,13 @@ pipeline {
         stage('6. Deploy & Verify K8s') {
             steps {
                 dir("${SERVICE_NAME}") {
+                    // Hanya mengganti tag image di deployment.yaml, sangat standar!
                     sh "sed -i 's|my-registry/${SERVICE_NAME}:latest|${DOCKER_IMAGE}|g' k8s/deployment.yaml"
                     
-                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        // KUNCINYA DI SINI: Salin config ke tempat kerja, lalu paksa ubah 127.0.0.1 menjadi host.docker.internal
-                        sh 'cp $KUBECONFIG_TMP ./kubeconfig_local'
-                        sh 'sed -i "s|127.0.0.1|host.docker.internal|g" ./kubeconfig_local'
-                        
-                        // Eksekusi apply menggunakan config local yang jalurnya sudah dialihkan ke laptop Windows lu
-                        sh "kubectl --kubeconfig=./kubeconfig_local apply -f k8s/ --validate=false"
-                        sh "kubectl --kubeconfig=./kubeconfig_local rollout status deployment/dispatch-service --timeout=90s"
+                    // Langsung eksekusi apply secara murni tanpa manipulasi file config!
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG')]) {
+                        sh "kubectl --kubeconfig=\$KUBECONFIG apply -f k8s/ --validate=false"
+                        sh "kubectl --kubeconfig=\$KUBECONFIG rollout status deployment/dispatch-service --timeout=90s"
                     }
                 }
             }
