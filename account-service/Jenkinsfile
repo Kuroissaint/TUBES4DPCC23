@@ -1,8 +1,13 @@
 pipeline {
     agent any
 
-    stages {
+    environment {
+        SERVICE_NAME = "account-service"
+        DOCKER_IMAGE = "firdaaridzkii/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        GOWORK = 'off'
+    }
 
+    stages {
         stage('1. Checkout Repo') {
             steps {
                 checkout scm
@@ -12,12 +17,12 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 dir('account-service') {
-                    bat 'go test ./... -count=1'
+                    bat 'go test ./... -v'
                 }
             }
         }
 
-        stage('3. Lint/Vet') {
+        stage('3. Lint / Vet') {
             steps {
                 dir('account-service') {
                     bat 'go vet ./...'
@@ -25,10 +30,10 @@ pipeline {
             }
         }
 
-        stage('4. Build Image') {
+        stage('4. Build Image (Lokal)') {
             steps {
                 dir('account-service') {
-                    bat 'docker build -t account-service:latest .'
+                    bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
         }
@@ -36,35 +41,41 @@ pipeline {
         stage('5. Functional Tests') {
             steps {
                 dir('account-service') {
-                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                        bat 'go test ./test -v'
-                    }
+                    bat 'go test -tags=functional ./... -v'
                 }
             }
         }
 
-        stage('6. Deploy Kubernetes') {
+        stage('6. Push Image') {
+            steps {
+                bat "docker push ${DOCKER_IMAGE}"
+            }
+        }
+
+        stage('7. Deploy di Kubernetes') {
             steps {
                 dir('account-service') {
-                    bat 'kubectl apply -f k8s/'
+                    bat "kubectl apply -f k8s/"
+                    bat "kubectl rollout restart deployment/${SERVICE_NAME}"
                 }
             }
         }
 
-        stage('7. Verify') {
+        stage('8. Verify') {
             steps {
-                bat 'kubectl rollout status deployment/account-service --timeout=90s'
+                bat "kubectl rollout status deployment/${SERVICE_NAME}"
+                bat "kubectl get pods -l app=${SERVICE_NAME}"
             }
         }
     }
 
     post {
         success {
-            echo 'Account Service Pipeline Success!'
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
         }
 
         failure {
-            echo 'Pipeline Failed!'
+            echo "Deployment failed! Check logs."
         }
     }
 }
