@@ -1,0 +1,70 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('1. Checkout Repo') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Unit Tests') {
+            steps {
+                dir('account-service') {
+                    bat 'go test ./... -count=1'
+                }
+            }
+        }
+
+        stage('3. Lint/Vet') {
+            steps {
+                dir('account-service') {
+                    bat 'go vet ./...'
+                }
+            }
+        }
+
+        stage('4. Build Image') {
+            steps {
+                dir('account-service') {
+                    bat 'docker build -t account-service:latest .'
+                }
+            }
+        }
+
+        stage('5. Functional Tests') {
+            steps {
+                dir('account-service') {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        bat 'go test ./test -v'
+                    }
+                }
+            }
+        }
+
+        stage('6. Deploy Kubernetes') {
+            steps {
+                dir('account-service') {
+                    bat 'kubectl apply -f k8s/'
+                }
+            }
+        }
+
+        stage('7. Verify') {
+            steps {
+                bat 'kubectl rollout status deployment/account-service --timeout=90s'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Account Service Pipeline Success!'
+        }
+
+        failure {
+            echo 'Pipeline Failed!'
+        }
+    }
+}
