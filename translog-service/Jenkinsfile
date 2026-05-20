@@ -27,13 +27,11 @@ pipeline {
                 dir("${SERVICE_NAME}") {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         
-                        // 1. Login menggunakan PowerShell supaya kebal karakter spesial
-                        powershell 'Write-Output $env:DOCKER_PASS | docker login -u $env:DOCKER_USER --password-stdin'
+                        // Cara ini 100% kebal karakter spesial dan tidak ada tambahan 'Enter'
+                        powershell 'docker login -u $env:DOCKER_USER -p $env:DOCKER_PASS'
                         
-                        // 2. Build Image
+                        // Lanjut build & push
                         bat "docker build -t ${DOCKER_IMAGE} ."
-                        
-                        // 3. Push Image
                         bat "docker push ${DOCKER_IMAGE}"
                     }
                 }
