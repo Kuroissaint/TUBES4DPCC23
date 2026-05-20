@@ -15,7 +15,6 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 dir('dispatch-service') {
-                    // Ditambahkan GOWORK=off agar tidak bentrok dengan go.work kelompok
                     sh 'GOWORK=off go test ./... -v'
                 }
             }
@@ -40,6 +39,8 @@ pipeline {
         stage('5. Functional Tests') {
             steps {
                 dir('dispatch-service') {
+                    // Karena tidak di-skip, Jenkins akan mengeksekusi tes ini.
+                    // Jika database belum menyala di laptopmu, stage ini akan gagal (merah).
                     sh 'GOWORK=off go test -tags=functional ./... -v'
                 }
             }
