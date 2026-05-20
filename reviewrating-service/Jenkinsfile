@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME = "review-rating-service" 
+        DOCKER_IMAGE = "my-registry/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('1. Checkout Repo') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Unit Tests') {
+            steps {
+                bat 'go test ./... -v'
+            }
+        }
+
+        stage('3. Lint / Vet') {
+            steps {
+                bat 'go vet ./...'
+            }
+        }
+
+        stage('4. Build Image (Lokal)') {
+            steps {
+                bat "docker build -t ${DOCKER_IMAGE} ."
+            }
+        }
+
+        stage('5. Functional Tests') {
+            steps {
+                bat 'go test -tags=functional ./... -v'
+            }
+        }
+
+        stage('6. Push Image') {
+            steps {
+                bat "docker push ${DOCKER_IMAGE}"
+            }
+        }
+
+        stage('7. Deploy di Kubernetes') {
+            steps {
+                bat "kubectl apply -f k8s/"
+                bat "kubectl rollout restart deployment/${SERVICE_NAME}"
+            }
+        }
+
+        stage('8. Verify') {
+            steps {
+                bat "kubectl rollout status deployment/${SERVICE_NAME}"
+                bat "kubectl get pods -l app=${SERVICE_NAME}"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
+        }
+    }
+}

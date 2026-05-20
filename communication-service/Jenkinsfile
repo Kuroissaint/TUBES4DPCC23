@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+    environment {
+        // Nama service disesuaikan
+        SERVICE_NAME = "communication-service" 
+        DOCKER_IMAGE = "my-registry/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('1. Checkout Repo') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Unit Tests') {
+            steps {
+                // Menjalankan unit test dengan gomock (pasti ada yang fail di awal)
+                sh 'go test ./... -v'
+            }
+        }
+
+        stage('3. Lint / Vet') {
+            steps {
+                // Mengecek kejanggalan pada kode Golang
+                sh 'go vet ./...'
+            }
+        }
+
+        stage('4. Build Image (Lokal)') {
+            steps {
+                // Build docker image
+                sh "docker build -t ${DOCKER_IMAGE} ."
+            }
+        }
+
+        stage('5. Functional Tests') {
+            steps {
+                // Jalankan test yang butuh DB lokal/container (Cassandra/Mongo)
+                // Menggunakan tags agar terpisah dari Unit Test
+                sh 'go test -tags=functional ./... -v'
+            }
+        }
+
+        stage('6. Push Image') {
+            steps {
+                // Push ke registry (opsional di lokal, tapi wajib di pipeline)
+                sh "docker push ${DOCKER_IMAGE}"
+            }
+        }
+
+        stage('7. Deploy di Kubernetes') {
+            steps {
+                // Update manifest k8s dengan image terbaru dan apply
+                sh "kubectl apply -f k8s/"
+                // Restart pods agar menggunakan image terbaru
+                sh "kubectl rollout restart deployment/${SERVICE_NAME}"
+            }
+        }
+
+        stage('8. Verify') {
+            steps {
+                // Memastikan pods berjalan dengan baik (tidak CrashLoopBackOff)
+                sh "kubectl rollout status deployment/${SERVICE_NAME}"
+                sh "kubectl get pods -l app=${SERVICE_NAME}"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
+        }
+    }
+}
