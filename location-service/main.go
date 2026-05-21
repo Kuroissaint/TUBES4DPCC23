@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"math"
 	"net/http"
 	"os"
 
@@ -9,24 +9,36 @@ import (
 	"github.com/google/uuid"
 )
 
-// Struktur respon standar sesuai kesepakatan tim
 type WebResponse struct {
 	Status  string      `json:"status"`
 	Data    interface{} `json:"data"`
 	Message string      `json:"message"`
 }
 
-// Contoh data lokasi (Tracking)
 type LocationData struct {
-	UserID    string  `json:"user_id"`    // Menggunakan snake_case
+	UserID    string  `json:"user_id"`
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
+}
+
+func CalculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	const R = 6371
+	dLat := (lat2 - lat1) * (math.Pi / 180)
+	dLon := (lon2 - lon1) * (math.Pi / 180)
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(lat1*(math.Pi/180))*math.Cos(lat2*(math.Pi/180))*
+			math.Sin(dLon/2)*math.Sin(dLon/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return math.Round(R*c*10) / 10 
+}
+
+func ValidateCoordinates(lat, lon float64) bool {
+	return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
 }
 
 func main() {
 	router := gin.Default()
 
-	// 1. Endpoint Health Check
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, WebResponse{
 			Status:  "success",
@@ -34,11 +46,8 @@ func main() {
 		})
 	})
 
-	// 2. Contoh Endpoint Tracking (Simulasi)
 	router.POST("/track", func(c *gin.Context) {
-		// Contoh penggunaan UUID sesuai kesepakatan
 		newID := uuid.New().String()
-
 		response := WebResponse{
 			Status: "success",
 			Data: LocationData{
@@ -51,12 +60,9 @@ func main() {
 		c.JSON(http.StatusOK, response)
 	})
 
-	// Mengambil port dari environment atau default ke 8002
 	port := os.Getenv("SERVICE_PORT")
 	if port == "" {
 		port = "8002"
 	}
-
-	fmt.Println("Location Service running on port:", port)
 	router.Run(":" + port)
 }
