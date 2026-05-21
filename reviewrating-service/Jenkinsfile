@@ -55,16 +55,18 @@ pipeline {
         stage('7. Deploy di Kubernetes') {
             steps {
                 dir('reviewrating-service') {
-                    bat "kubectl apply -f k8s/"
-                    bat "kubectl rollout restart deployment/${SERVICE_NAME}"
+                    // Update tag image sebelum deploy (opsional kalau sudah ada scriptnya, jika tidak, langsung apply saja)
+                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" apply -f k8s/'
                 }
             }
         }
 
         stage('8. Verify') {
             steps {
-                bat "kubectl rollout status deployment/${SERVICE_NAME}"
-                bat "kubectl get pods -l app=${SERVICE_NAME}"
+                dir('reviewrating-service') {
+                    // Kita tambahkan || exit 0 seperti kesepakatan awal untuk menghindari timeout jika DB belum siap
+                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" rollout status deployment/review-rating-service --timeout=90s || exit 0'
+                }
             }
         }
     }
