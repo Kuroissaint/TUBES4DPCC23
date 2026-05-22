@@ -1,5 +1,5 @@
 //go:generate mockgen -source=repository.go -destination=mocks/mock_repository.go -package=mocks
-package main
+package translog
 
 type TranslogRepository interface {
 	SaveOrder(orderID string, userID string, status string, serviceType string, itemDimension float64) error

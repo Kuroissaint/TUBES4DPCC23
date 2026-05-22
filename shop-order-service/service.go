@@ -1,6 +1,18 @@
-package main
+package shoporder
 
 import "github.com/google/uuid"
+
+type ShoppingCart struct {
+	OrderID    string
+	UserID     string
+	MerchantID string
+	Items      []string
+	Status     string
+}
+
+func (c *ShoppingCart) AddToCart(item string) {
+	c.Items = append(c.Items, item)
+}
 
 type ShopOrderService interface {
 	CreateShoppingOrder() (*ShoppingCart, error)
