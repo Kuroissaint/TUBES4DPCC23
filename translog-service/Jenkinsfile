@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         SERVICE_NAME  = 'translog-service'
-        DOCKER_HUB_ID = 'username_dockerhub_kamu' // Ubah sesuai username Docker Hub kelompok/pribadi
+        DOCKER_HUB_ID = 'kuroissaint' // Ubah sesuai username Docker Hub kelompok/pribadi
         DOCKER_IMAGE  = "${DOCKER_HUB_ID}/${SERVICE_NAME}:latest"
     }
 
