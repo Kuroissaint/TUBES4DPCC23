@@ -2,32 +2,29 @@ pipeline {
     agent any
 
     environment {
-        SERVICE_NAME  = 'translog-service'
-        DOCKER_HUB_ID = 'kuroissaint' // Ubah sesuai username Docker Hub kelompok/pribadi
-        DOCKER_IMAGE  = "${DOCKER_HUB_ID}/${SERVICE_NAME}:latest"
+        SERVICE_NAME = "translog-service"
+        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        GOWORK = 'off'
     }
 
     stages {
         stage('1. Checkout Repo') {
             steps {
-                // Mengambil kode dari repository Git yang dikonfigurasi di Jenkins
                 checkout scm
             }
         }
 
         stage('2. Unit Tests') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Menjalankan unit test dengan mengabaikan functional test (menggunakan build tag)
-                    bat 'go test -v ./...'
+                dir('translog-service') {
+                    bat 'go test ./... -v'
                 }
             }
         }
 
         stage('3. Lint / Vet') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Memeriksa kualitas kode dan anomali menggunakan go vet
+                dir('translog-service') {
                     bat 'go vet ./...'
                 }
             }
@@ -35,8 +32,7 @@ pipeline {
 
         stage('4. Build Image (Lokal)') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Build docker image secara lokal di server Jenkins
+                dir('translog-service') {
                     bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
@@ -44,44 +40,48 @@ pipeline {
 
         stage('5. Functional Tests') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Menjalankan functional test yang berinteraksi dengan database/env luar
-                    // Catatan: Sesuai instruksi tubes, jika belum selesai kodenya, test akan failed, 
-                    // namun ditambahkan '|| exit 0' atau pembungkus catch agar pipeline tidak langsung stop jika diizinkan dosen.
-                    bat 'go test -tags=functional -v ./...'
+                dir('translog-service') {
+                    bat 'go test -tags=functional ./... -v'
                 }
             }
         }
 
         stage('6. Push Image') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Login dan push image hasil build ke Docker Hub setelah lolos functional test
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
-                        bat "docker push ${DOCKER_IMAGE}"
-                    }
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
+                    bat "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
 
         stage('7. Deploy di Kubernetes') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Mengubah tag image di file manifest k8s secara dinamis menggunakan PowerShell lalu apply ke cluster
-                    powershell "((Get-Content k8s/deployment.yaml) -replace 'my-registry/${SERVICE_NAME}:latest', '${DOCKER_IMAGE}') | Set-Content k8s/deployment.yaml"
-                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" apply -f k8s/'
+                dir('translog-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
+                    }
                 }
             }
         }
 
         stage('8. Verify') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Memastikan proses deployment di kubernetes berhasil bergulir (rollout) tanpa error
-                    bat "kubectl --kubeconfig=\"C:\\Users\\ASUS\\.kube\\config\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                dir('translog-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                    }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
         }
     }
 }

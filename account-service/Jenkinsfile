@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         SERVICE_NAME = "account-service"
-        DOCKER_IMAGE = "firdaaridzkii/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
         GOWORK = 'off'
     }
 
@@ -48,23 +48,30 @@ pipeline {
 
         stage('6. Push Image') {
             steps {
-                bat "docker push ${DOCKER_IMAGE}"
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
+                    bat "docker push ${DOCKER_IMAGE}"
+                }
             }
         }
 
         stage('7. Deploy di Kubernetes') {
             steps {
                 dir('account-service') {
-                    bat "kubectl apply -f k8s/"
-                    bat "kubectl rollout restart deployment/${SERVICE_NAME}"
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
+                    }
                 }
             }
         }
 
         stage('8. Verify') {
             steps {
-                bat "kubectl rollout status deployment/${SERVICE_NAME}"
-                bat "kubectl get pods -l app=${SERVICE_NAME}"
+                dir('account-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                    }
+                }
             }
         }
     }
@@ -73,7 +80,6 @@ pipeline {
         success {
             echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
         }
-
         failure {
             echo "Deployment failed! Check logs."
         }

@@ -1,46 +1,19 @@
 package main
 
 import (
-	"math"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"location-service/model"
 )
-
-type WebResponse struct {
-	Status  string      `json:"status"`
-	Data    interface{} `json:"data"`
-	Message string      `json:"message"`
-}
-
-type LocationData struct {
-	UserID    string  `json:"user_id"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-}
-
-func CalculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
-	const R = 6371
-	dLat := (lat2 - lat1) * (math.Pi / 180)
-	dLon := (lon2 - lon1) * (math.Pi / 180)
-	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
-		math.Cos(lat1*(math.Pi/180))*math.Cos(lat2*(math.Pi/180))*
-			math.Sin(dLon/2)*math.Sin(dLon/2)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	return math.Round(R*c*10) / 10 
-}
-
-func ValidateCoordinates(lat, lon float64) bool {
-	return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
-}
 
 func main() {
 	router := gin.Default()
 
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, WebResponse{
+		c.JSON(http.StatusOK, model.WebResponse{
 			Status:  "success",
 			Message: "Location Service is running",
 		})
@@ -48,9 +21,9 @@ func main() {
 
 	router.POST("/track", func(c *gin.Context) {
 		newID := uuid.New().String()
-		response := WebResponse{
+		response := model.WebResponse{
 			Status: "success",
-			Data: LocationData{
+			Data: model.LocationData{
 				UserID:    newID,
 				Latitude:  -6.200000,
 				Longitude: 106.816666,

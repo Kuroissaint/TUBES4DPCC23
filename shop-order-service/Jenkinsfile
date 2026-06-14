@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        SERVICE_NAME  = 'shop-order-service'
-        DOCKER_HUB_ID = 'kuroissaint' 
-        DOCKER_IMAGE  = "${DOCKER_HUB_ID}/${SERVICE_NAME}:latest"
+        SERVICE_NAME = "shop-order-service"
+        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        GOWORK = 'off'
     }
 
     stages {
@@ -16,15 +16,15 @@ pipeline {
 
         stage('2. Unit Tests') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    bat 'go test -v ./...'
+                dir('shop-order-service') {
+                    bat 'go test ./... -v'
                 }
             }
         }
 
         stage('3. Lint / Vet') {
             steps {
-                dir("${SERVICE_NAME}") {
+                dir('shop-order-service') {
                     bat 'go vet ./...'
                 }
             }
@@ -32,7 +32,7 @@ pipeline {
 
         stage('4. Build Image (Lokal)') {
             steps {
-                dir("${SERVICE_NAME}") {
+                dir('shop-order-service') {
                     bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
@@ -40,39 +40,48 @@ pipeline {
 
         stage('5. Functional Tests') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    bat 'go test -tags=functional -v ./...'
+                dir('shop-order-service') {
+                    bat 'go test -tags=functional ./... -v'
                 }
             }
         }
 
         stage('6. Push Image') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
-                        bat "docker push ${DOCKER_IMAGE}"
-                    }
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
+                    bat "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
 
         stage('7. Deploy di Kubernetes') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    powershell "((Get-Content k8s/deployment.yaml) -replace 'my-registry/${SERVICE_NAME}:latest', '${DOCKER_IMAGE}') | Set-Content k8s/deployment.yaml"
-                    bat 'kubectl --kubeconfig="C:\\Users\\ASUS\\.kube\\config" apply -f k8s/'
+                dir('shop-order-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
+                    }
                 }
             }
         }
 
         stage('8. Verify') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    // Tambahkan || exit 0 sesuai kesepakatan referensi reviewrating
-                    bat "kubectl --kubeconfig=\"C:\\Users\\ASUS\\.kube\\config\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                dir('shop-order-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                    }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
         }
     }
 }

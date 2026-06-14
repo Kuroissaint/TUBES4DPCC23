@@ -1,13 +1,10 @@
 pipeline {
     agent any
 
-    tools {
-        go 'go-1.21' 
-    }
-
     environment {
         SERVICE_NAME = "dispatch-service"
-        DOCKER_IMAGE = "drikz/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        GOWORK = 'off'
     }
 
     stages {
@@ -19,53 +16,60 @@ pipeline {
 
         stage('2. Unit Tests') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    sh 'GOWORK=off go test -v ./... -skip Functional' 
+                dir('dispatch-service') {
+                    bat 'go test ./... -v'
                 }
             }
         }
 
-        stage('3. Lint/Vet') {
+        stage('3. Lint / Vet') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    sh 'GOWORK=off go vet ./...'
+                dir('dispatch-service') {
+                    bat 'go vet ./...'
                 }
             }
         }
 
-        stage('4. Build & Push Image') {
+        stage('4. Build Image (Lokal)') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    sh "docker build -t ${DOCKER_IMAGE} ."
-                    
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
-                        sh "docker push ${DOCKER_IMAGE}"
-                    }
+                dir('dispatch-service') {
+                    bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
         }
 
         stage('5. Functional Tests') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    sh 'GOWORK=off go test -v -run Functional ./... || exit 0'
+                dir('dispatch-service') {
+                    bat 'go test -tags=functional ./... -v'
                 }
             }
         }
 
-        stage('6. Deploy & Verify K8s') {
+        stage('6. Push Image') {
             steps {
-                dir("${SERVICE_NAME}") {
-                    sh "sed -i 's|my-registry/${SERVICE_NAME}:latest|${DOCKER_IMAGE}|g' k8s/deployment.yaml"
-                    
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
+                    bat "docker push ${DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('7. Deploy di Kubernetes') {
+            steps {
+                dir('dispatch-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        sh 'cp $KUBECONFIG_TMP ./kubeconfig_local'
-                        sh 'sed -i "s|127.0.0.1|host.docker.internal|g" ./kubeconfig_local'
-                        
-                        // Perintah apply dan rollout status sudah dikasih pengaman anti-eror
-                        sh "kubectl --kubeconfig=./kubeconfig_local apply -f k8s/ --validate=false --insecure-skip-tls-verify=true"
-                        sh "kubectl --kubeconfig=./kubeconfig_local rollout status deployment/dispatch-service --timeout=90s --insecure-skip-tls-verify=true"
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
+                    }
+                }
+            }
+        }
+
+        stage('8. Verify') {
+            steps {
+                dir('dispatch-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
                     }
                 }
             }
@@ -73,8 +77,11 @@ pipeline {
     }
 
     post {
-        always {
-            echo "Pipeline untuk ${SERVICE_NAME} selesai dieksekusi."
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
         }
     }
 }
