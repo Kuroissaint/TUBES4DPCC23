@@ -2,9 +2,18 @@ package service
 
 import (
 	"math"
+	"location-service/repository"
 )
 
-func CalculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
+type LocationService struct {
+	repo repository.LocationRepository
+}
+
+func NewLocationService(repo repository.LocationRepository) *LocationService {
+	return &LocationService{repo: repo}
+}
+
+func (s *LocationService) CalculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	const R = 6371
 	dLat := (lat2 - lat1) * (math.Pi / 180)
 	dLon := (lon2 - lon1) * (math.Pi / 180)
@@ -15,6 +24,6 @@ func CalculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	return math.Round(R*c*10) / 10 
 }
 
-func ValidateCoordinates(lat, lon float64) bool {
+func (s *LocationService) ValidateCoordinates(lat, lon float64) bool {
 	return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
 }

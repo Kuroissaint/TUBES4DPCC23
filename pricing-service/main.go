@@ -3,19 +3,31 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"pricing-service/handler"
+	"pricing-service/repository"
+	"pricing-service/service"
 )
 
-func main() {
-	fmt.Println("Pricing and Promo Service Running...")
+type dummyPricingRepo struct{}
 
-	// Handler sederhana untuk cek status health
+func (r *dummyPricingRepo) GetDiscountByCode(promoCode string) (int, error) {
+	return 10, nil // 10% discount
+}
+
+func main() {
+	var repo repository.PromoRepository = &dummyPricingRepo{}
+	svc := service.NewPricingService(repo)
+	hdl := handler.NewPricingHandler(svc)
+
+	http.HandleFunc("/api/pricing/calculate", hdl.CalculatePriceHandler)
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Pricing service is healthy"))
 	})
 
-	// Menahan aplikasi agar tetap hidup di port 8081 (atau sesuaikan port k8s kamu)
-	err := http.ListenAndServe(":8081", nil)
+	fmt.Println("Pricing and Promo Service running on :8087")
+	err := http.ListenAndServe(":8087", nil)
 	if err != nil {
 		fmt.Printf("Server failed to start: %v\n", err)
 	}

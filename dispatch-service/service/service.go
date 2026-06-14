@@ -3,10 +3,19 @@ package service
 import (
 	"errors"
 	"dispatch-service/model"
+	"dispatch-service/repository"
 )
 
+type DispatchService struct {
+	repo repository.DispatchRepository
+}
+
+func NewDispatchService(repo repository.DispatchRepository) *DispatchService {
+	return &DispatchService{repo: repo}
+}
+
 // FindNearestDriver merepresentasikan logika pencarian driver terdekat
-func FindNearestDriver(lat, lng float64) (model.Driver, error) {
+func (s *DispatchService) FindNearestDriver(lat, lng float64) (model.Driver, error) {
 	if lat == 0 && lng == 0 {
 		return model.Driver{}, errors.New("lokasi tidak valid")
 	}
@@ -21,7 +30,7 @@ func FindNearestDriver(lat, lng float64) (model.Driver, error) {
 }
 
 // AssignDriver mengubah status penugasan driver
-func AssignDriver(driverID string, status string) (model.Driver, error) {
+func (s *DispatchService) AssignDriver(driverID string, status string) (model.Driver, error) {
 	finalStatus := status
 	if status == "pending" || status == "" {
 		finalStatus = "assigned"

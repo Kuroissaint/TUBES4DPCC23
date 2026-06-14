@@ -11,7 +11,8 @@ func TestCalculateDistance_Unit(t *testing.T) {
 
 	t.Logf("Testing distance between: %f,%f and %f,%f", lat1, lon1, lat2, lon2)
 
-	result := service.CalculateDistance(lat1, lon1, lat2, lon2)
+	svc := service.NewLocationService(nil)
+	result := svc.CalculateDistance(lat1, lon1, lat2, lon2)
 	
 	expected := 1.6 
 	
@@ -24,7 +25,8 @@ func TestValidateCoordinates_Unit(t *testing.T) {
 	invalidLat := 100.0
 	invalidLon := 0.0
 	
-	isValid := service.ValidateCoordinates(invalidLat, invalidLon)
+	svc := service.NewLocationService(nil)
+	isValid := svc.ValidateCoordinates(invalidLat, invalidLon)
 
 	if isValid {
 		t.Errorf("Unit Test FAILED: Fungsi validasi harusnya me-return false untuk latitude 100")

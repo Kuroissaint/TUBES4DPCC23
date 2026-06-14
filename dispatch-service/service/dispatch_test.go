@@ -10,7 +10,8 @@ func TestFindNearestDriver_Unit(t *testing.T) {
 	lng := 106.816666
 	t.Logf("Mencari driver terdekat untuk lokasi: %f, %f", lat, lng)
 
-	driver, err := service.FindNearestDriver(lat, lng)
+	svc := service.NewDispatchService(nil)
+	driver, err := svc.FindNearestDriver(lat, lng)
 	if err != nil {
 		t.Fatalf("Fungsi error: %v", err)
 	}
@@ -27,7 +28,8 @@ func TestAssignDriverStatus_Unit(t *testing.T) {
 	driverID := "DRV-001"
 	status := "pending"
 
-	driver, err := service.AssignDriver(driverID, status)
+	svc := service.NewDispatchService(nil)
+	driver, err := svc.AssignDriver(driverID, status)
 	if err != nil {
 		t.Fatalf("Fungsi error: %v", err)
 	}

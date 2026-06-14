@@ -1,19 +1,26 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"dispatch-service/handler"
+	"dispatch-service/service"
 )
 
 func main() {
-	r := gin.Default()
+	svc := service.NewDispatchService(nil)
+	hdl := handler.NewDispatchHandler(svc)
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
+	http.HandleFunc("/api/dispatch/find", hdl.FindDriverHandler)
+	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message": "pong"}`))
 	})
 
-	r.Run(":8080")
+	fmt.Println("Dispatch Service running on :8088")
+	err := http.ListenAndServe(":8088", nil)
+	if err != nil {
+		fmt.Printf("Server failed to start: %v\n", err)
+	}
 }
