@@ -1,11 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dispatch-service # Sesuaikan nama
-  labels:
-    app: dispatch-service
+  name: dispatch-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: dispatch-service
@@ -16,15 +14,24 @@ spec:
     spec:
       containers:
       - name: dispatch-service
-        image: my-registry/dispatch-service:latest
+        image: acktubes.azurecr.io/dispatch-service:latest
         ports:
-        - containerPort: 8003 # Pakai jatah Port Dispatch
+        - containerPort: 8003
         env:
-        - name: DB_HOST
-          value: "db-postgres-service"
-        - name: DB_NAME
-          value: "db_dispatch" # Sesuai strategi database tim
-        - name: DB_USER
-          value: "postgres"
-        - name: DB_PASSWORD
-          value: "123"
+        - name: SERVICE_PORT
+          value: "8003"
+        - name: LOCATION_SERVICE_URL
+          value: "http://location-service-cluster:8002"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch-service-public
+spec:
+  # LoadBalancer akan memerintahkan Azure untuk otomatis membuat 1 buah IP Publik berbayar
+  type: LoadBalancer 
+  ports:
+  - port: 80
+    targetPort: 8003
+  selector:
+    app: dispatch-service

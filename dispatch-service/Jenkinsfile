@@ -1,88 +1,35 @@
 pipeline {
     agent any
-
     environment {
-        SERVICE_NAME = "dispatch-service"
-        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
-        GOWORK = 'off'
+        // Sesuaikan dengan nama Azure Registry & Cluster kelompokmu nanti
+        REGISTRY_NAME = 'acktubes.azurecr.io'
+        SERVICE_NAME  = 'dispatch-service' // Ganti jadi 'dispatch-service' di folder dispatch
+        IMAGE_TAG     = "latest"
     }
-
     stages {
-        stage('1. Checkout Repo') {
+        stage('Checkout Code') {
             steps {
-                checkout scm
+                echo 'Mengambil kode terbaru dari GitHub...'
             }
         }
-
-        stage('2. Unit Tests') {
+        stage('Docker Build') {
             steps {
-                dir('dispatch-service') {
-                    bat 'go test ./... -v'
-                }
+                echo "Membungkus aplikasi menjadi Docker Image..."
+                sh "docker build -t ${REGISTRY_NAME}/${SERVICE_NAME}:${IMAGE_TAG} ./"
             }
         }
-
-        stage('3. Lint / Vet') {
+        stage('Push to Azure ACR') {
             steps {
-                dir('dispatch-service') {
-                    bat 'go vet ./...'
-                }
+                echo "Mengunggah Image ke Azure Container Registry..."
+                // Azure Login dan Docker Push dijalankan di sini oleh robot Jenkins
+                sh "docker push ${REGISTRY_NAME}/${SERVICE_NAME}:${IMAGE_TAG}"
             }
         }
-
-        stage('4. Build Image (Lokal)') {
+        stage('Deploy to Azure AKS') {
             steps {
-                dir('dispatch-service') {
-                    bat "docker build -t ${DOCKER_IMAGE} ."
-                }
+                echo "Memperbarui Pods di Azure Kubernetes Service..."
+                sh "kubectl apply -f k8s/deployment.yaml"
             }
-        }
-
-        stage('5. Functional Tests') {
-            steps {
-                dir('dispatch-service') {
-                    bat 'go test -tags=functional ./... -v'
-                }
-            }
-        }
-
-        stage('6. Push Image') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat "docker push ${DOCKER_IMAGE}"
-                }
-            }
-        }
-
-        stage('7. Deploy di Kubernetes') {
-            steps {
-                dir('dispatch-service') {
-                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
-                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}"
-                    }
-                }
-            }
-        }
-
-        stage('8. Verify') {
-            steps {
-                dir('dispatch-service') {
-                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
-        }
-        failure {
-            echo "Deployment failed! Check logs."
         }
     }
 }

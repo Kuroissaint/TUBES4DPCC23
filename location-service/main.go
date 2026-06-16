@@ -13,10 +13,15 @@ func main() {
 	svc := service.NewLocationService(nil)
 	hdl := handler.NewLocationHandler(svc)
 
+	// Registrasi list endpoint API sesuai standar agar tidak hanya berisi satu fungsi tunggal
 	http.HandleFunc("/api/location/distance", hdl.CalculateDistanceHandler)
+	http.HandleFunc("/api/location/update", hdl.UpdateLocationHandler)
+	http.HandleFunc("/api/location/nearby", hdl.GetNearbyDriversHandler)
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"success","message":"Location Service is running"}`))
+		w.Write([]byte(`{"status":"success","message":"Location Service is running smoothly"}`))
 	})
 
 	port := os.Getenv("SERVICE_PORT")

@@ -1,6 +1,14 @@
-go 1.25.0
+go 1.26.3
 
 use (
+	./account-service
+	./communication-service
+	./dispatch-service
+	./finance-service
+	./location-service
+	./merchant-service
+	./pricing-service
+	./reviewrating-service
 	./shop-order-service
 	./translog-service
 )
