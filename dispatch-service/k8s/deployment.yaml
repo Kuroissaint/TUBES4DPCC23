@@ -14,7 +14,8 @@ spec:
     spec:
       containers:
       - name: dispatch-service
-        image: ojektubesregistry.azurecr.io/dispatch-service:latest
+        image: ojektubesregistry.azurecr.io/dispatch-service:v99
+        imagePullPolicy: Always
         ports:
         - containerPort: 8003
         env:
@@ -22,6 +23,8 @@ spec:
           value: "8003"
         - name: MONGO_URI
           value: "mongodb://mongodb-service:27017"
+        - name: LOCATION_SERVICE_URL
+          value: "http://location-service-service:8002"
 ---
 apiVersion: v1
 kind: Service

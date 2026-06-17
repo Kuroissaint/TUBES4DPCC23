@@ -13,19 +13,15 @@ func main() {
 	svc := service.NewDispatchService(nil)
 	hdl := handler.NewDispatchHandler(svc)
 
-	// 1. DAFTARKAN RUTE SPESIFIK DENGAN PREFIX (Sama seperti trik location-service)
-	// Karena kodingan asli yang diterima lewat jaringan masih membawa kata /dispatch
+	// JURUS RUTE GANDA: Gateway motong atau nggak, request PASTI MASUK!
+	http.HandleFunc("/api/dispatch/orders", hdl.CreateOrderHandler)
 	http.HandleFunc("/dispatch/api/dispatch/orders", hdl.CreateOrderHandler)
 
-	// 2. RUTE CATCH-ALL (Hanya merespon jika path pas "/dispatch" atau "/dispatch/")
-	http.HandleFunc("/dispatch/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/dispatch" && r.URL.Path != "/dispatch/" {
-			http.NotFound(w, r)
-			return
-		}
+	// RUTE HEALTH CHECK / CATCH-ALL
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"success","message":"Dispatch Service is running smoothly"}`))
+		w.Write([]byte(`{"status":"success","message":"Dispatch Service v99 is RUNNING!"}`))
 	})
 
 	port := os.Getenv("SERVICE_PORT")
