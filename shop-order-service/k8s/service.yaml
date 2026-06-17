@@ -7,6 +7,6 @@ spec:
     app: shop-order-service
   ports:
     - protocol: TCP
-      port: 8009
-      targetPort: 8009
+      port: 8084
+      targetPort: 8084
   type: LoadBalancer

@@ -7,6 +7,6 @@ spec:
     app: translog-service
   ports:
     - protocol: TCP
-      port: 8005
-      targetPort: 8005
+      port: 8085
+      targetPort: 8085
   type: LoadBalancer
