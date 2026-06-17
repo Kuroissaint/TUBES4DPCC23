@@ -18,8 +18,10 @@ spec:
       - name: translog-service
         image: my-registry/translog-service:latest
         ports:
-        - containerPort: 8005
+        - containerPort: 8085
         env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres.mymsipxzqzdomulumweg:kuroissaintdb@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
         - name: DB_HOST
           value: "db-postgres-service"
         - name: DB_NAME

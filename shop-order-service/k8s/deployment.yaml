@@ -18,8 +18,10 @@ spec:
       - name: shop-order-service
         image: my-registry/shop-order-service:latest # Nanti di-replace oleh Jenkins
         ports:
-        - containerPort: 8009
+        - containerPort: 8084
         env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres.mymsipxzqzdomulumweg:kuroissaintdb@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
         - name: DB_HOST
           value: "db-postgres-service"
         - name: DB_NAME
