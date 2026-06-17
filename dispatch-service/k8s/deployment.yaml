@@ -14,24 +14,23 @@ spec:
     spec:
       containers:
       - name: dispatch-service
-        image: acktubes.azurecr.io/dispatch-service:latest
+        image: ojektubesregistry.azurecr.io/dispatch-service:latest
         ports:
         - containerPort: 8003
         env:
         - name: SERVICE_PORT
           value: "8003"
-        - name: LOCATION_SERVICE_URL
-          value: "http://location-service-cluster:8002"
+        - name: MONGO_URI
+          value: "mongodb://mongodb-service:27017"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: dispatch-service-public
+  name: dispatch-service-service
 spec:
-  # LoadBalancer akan memerintahkan Azure untuk otomatis membuat 1 buah IP Publik berbayar
-  type: LoadBalancer 
+  type: ClusterIP
   ports:
-  - port: 80
+  - port: 8003
     targetPort: 8003
   selector:
     app: dispatch-service
