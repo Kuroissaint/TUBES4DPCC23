@@ -9,4 +9,4 @@ spec:
     - protocol: TCP
       port: 8009
       targetPort: 8009
-  type: ClusterIP
+  type: LoadBalancer
