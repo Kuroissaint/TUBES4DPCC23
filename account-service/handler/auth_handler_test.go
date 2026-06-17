@@ -18,6 +18,14 @@ func (m MockAuthService) Login(req model.LoginRequest) (*model.LoginResponse, er
 	}, nil
 }
 
+//driver
+func (m MockAuthService) RegisterDriver(req model.DriverRegisterRequest) (*model.RegisterResponse, error) {
+	return &model.RegisterResponse{
+		UserID:  1,
+		Message: "Registrasi driver berhasil!",
+	}, nil
+}
+
 func TestLoginHandler(t *testing.T) {
 
 	jsonBody := []byte(`{
@@ -57,4 +65,23 @@ func TestLoginHandler(t *testing.T) {
 	if response.Token != "dummy-token" {
 		t.Errorf("expected dummy-token, got %s", response.Token)
 	}
+	
+	if response.Token == "" {
+		t.Error("token tidak boleh kosong")
+	}
+}
+
+func (m MockAuthService) Register(req model.RegisterRequest) (*model.RegisterResponse, error) {
+	return &model.RegisterResponse{
+		UserID:  1,
+		Message: "Registrasi berhasil!",
+	}, nil
+}
+
+//untuk customer
+func (m MockAuthService) RegisterCustomer(req model.CustomerRegisterRequest) (*model.RegisterResponse, error) {
+	return &model.RegisterResponse{
+		UserID:  1,
+		Message: "Registrasi customer berhasil!",
+	}, nil
 }

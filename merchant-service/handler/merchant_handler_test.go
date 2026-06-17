@@ -10,59 +10,65 @@ import (
 	"merchant-service/model"
 )
 
-// MockMerchantService digunakan untuk menyimulasikan core business logic
 type MockMerchantService struct{}
 
-func (m MockMerchantService) RegisterMerchant(req model.MerchantRequest) (*model.MerchantResponse, error) {
-	return &model.MerchantResponse{
-		MerchantID: 99,
-		Status:     "active",
+func (m MockMerchantService) RegisterMerchant(req model.MerchantRegisterRequest) (*model.MerchantRegisterResponse, error) {
+	return &model.MerchantRegisterResponse{
+		UserID:  1,
+		Message: "Registrasi merchant berhasil!",
+	}, nil
+}
+
+func (m MockMerchantService) GetMerchant(id int) (*model.Merchant, error) {
+	return &model.Merchant{
+		ID:       id,
+		NamaToko: "Warung Test",
+		Kota:     "Bandung",
+	}, nil
+}
+
+func (m MockMerchantService) AddMenuItem(merchantID int, req model.MenuItemRequest) (*model.MenuItemResponse, error) {
+	return &model.MenuItemResponse{
+		ID:      1,
+		Message: "Menu berhasil ditambahkan!",
+	}, nil
+}
+
+func (m MockMerchantService) GetMenu(merchantID int) ([]model.MenuItem, error) {
+	return []model.MenuItem{
+		{ID: 1, MerchantID: merchantID, Nama: "Nasi Goreng", Harga: 15000},
 	}, nil
 }
 
 func TestRegisterMerchantHandler(t *testing.T) {
-	// 1. Siapkan mock request body JSON
 	jsonBody := []byte(`{
-		"name": "Geprek Bensu UPI",
-		"city": "Bandung"
+		"nama": "Pak Budi",
+		"email": "pakbudi@gmail.com",
+		"no_hp": "081234567890",
+		"password": "password123",
+		"nama_toko": "Warung Pak Budi",
+		"kota": "Bandung"
 	}`)
 
-	// 2. Buat objek request HTTP palsu menembak ke endpoint merchant
-	req := httptest.NewRequest(
-		"POST",
-		"/merchants",
-		bytes.NewBuffer(jsonBody),
-	)
+	req := httptest.NewRequest("POST", "/api/merchant/register", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 
-	// 3. Buat ResponseRecorder untuk menangkap output dari handler
 	rr := httptest.NewRecorder()
-
-	// 4. Inisialisasi handler dengan dependensi mock service
 	mockService := MockMerchantService{}
-	handler := NewMerchantHandler(mockService) // Pastikan fungsi ini didefinisikan di merchant_handler.go
-
-	// 5. Jalankan handler
+	handler := NewMerchantHandler(mockService)
 	handler.RegisterMerchantHandler(rr, req)
 
-	// 6. Verifikasi HTTP Status Code (Harus 200 OK atau 201 Created tergantung rancanganmu)
 	if rr.Code != http.StatusOK {
-		t.Error("status harus 200")
+		t.Errorf("status harus 200, dapat %d", rr.Code)
 	}
 
-	// 7. Parsing response body dari JSON kembali ke struct model
-	var response model.MerchantResponse
+	var response model.MerchantRegisterResponse
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("failed parse response: %v", err)
 	}
 
-	// 8. Cek validitas data hasil mock di dalam response body
-	if response.MerchantID != 99 {
-		t.Errorf("expected MerchantID 99, got %d", response.MerchantID)
-	}
-
-	if response.Status != "active" {
-		t.Errorf("expected status active, got %s", response.Status)
+	if response.Message != "Registrasi merchant berhasil!" {
+		t.Errorf("expected registrasi berhasil, got %s", response.Message)
 	}
 }

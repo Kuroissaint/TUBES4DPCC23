@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: review-rating-service
-        image: kuroissaint/review-rating-service:latest
+        image: my-registry/review-rating-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8008

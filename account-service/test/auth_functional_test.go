@@ -14,9 +14,35 @@ type MockAuthService struct{}
 
 func (m MockAuthService) Login(req model.LoginRequest) (*model.LoginResponse, error) {
 	return &model.LoginResponse{
+		UserID: 1,
 		Token: "dummy-token",
 	}, nil
 }
+
+//driver
+func (m MockAuthService) Register(req model.RegisterRequest) (*model.RegisterResponse, error) {
+	return &model.RegisterResponse{
+		UserID:  1,
+		Message: "Registrasi berhasil!",
+	}, nil
+}
+
+//driver
+func (m MockAuthService) RegisterDriver(req model.DriverRegisterRequest) (*model.RegisterResponse, error) {
+	return &model.RegisterResponse{
+		UserID:  1,
+		Message: "Registrasi driver berhasil!",
+	}, nil
+}
+
+//cutomer
+func (m MockAuthService) RegisterCustomer(req model.CustomerRegisterRequest) (*model.RegisterResponse, error) {
+	return &model.RegisterResponse{
+		UserID:  1,
+		Message: "Registrasi customer berhasil!",
+	}, nil
+}
+
 
 func TestLogin_Functional(t *testing.T) {
 
@@ -37,7 +63,6 @@ func TestLogin_Functional(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-
 	authHandler.LoginHandler(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -45,7 +70,6 @@ func TestLogin_Functional(t *testing.T) {
 	}
 
 	var response model.LoginResponse
-
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed parse response: %v", err)
@@ -54,4 +78,9 @@ func TestLogin_Functional(t *testing.T) {
 	if response.Token != "dummy-token" {
 		t.Errorf("Expected dummy-token, got %s", response.Token)
 	}
+
+	if response.Token == "" {
+		t.Errorf("Token tidak boleh kosong")
+	}
 }
+

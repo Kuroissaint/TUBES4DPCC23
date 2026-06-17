@@ -1,29 +1,39 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 
-	"github.com/kuroissaint/tubes2dpcc/reviewrating-service/handler"
-	"github.com/kuroissaint/tubes2dpcc/reviewrating-service/model"
-	"github.com/kuroissaint/tubes2dpcc/reviewrating-service/repository"
-	"github.com/kuroissaint/tubes2dpcc/reviewrating-service/service"
+	"github.com/gin-gonic/gin"
 )
 
-type dummyReviewRepo struct{}
-
-func (r *dummyReviewRepo) SaveReview(ctx context.Context, rev model.Review) error {
-	return nil
-}
-
 func main() {
-	var repo repository.ReviewRepository = &dummyReviewRepo{}
-	svc := service.NewReviewService(repo)
-	hdl := handler.NewReviewHandler(svc)
+	// 1. Inisialisasi Database, Repo, dan Service
+	db := ConnectDB()
+	repo := NewReviewRepository(db)
+	service := NewReviewService(repo)
 
-	http.HandleFunc("/api/review/submit", hdl.SubmitReviewHandler)
+	// 2. Siapkan Router (Jalur API) menggunakan Gin
+	r := gin.Default()
 
-	fmt.Println("ReviewRating Service running on :8083")
-	http.ListenAndServe(":8083", nil)
+	r.POST("/reviews", func(c *gin.Context) {
+		var rev Review
+		
+		// Tangkap data JSON yang dikirim pengguna
+		if err := c.ShouldBindJSON(&rev); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Format data salah"})
+			return
+		}
+
+		// Kirim ke Service untuk divalidasi dan disimpan
+		err := service.SubmitReview(c.Request.Context(), rev)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Ulasan berhasil disimpan!"})
+	})
+
+	// 3. Jalankan server di port 8008 (Sesuai dengan k8s deployment)
+	r.Run(":8008")
 }

@@ -1,29 +1,34 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 
-	"github.com/kuroissaint/tubes2dpcc/communication-service/handler"
-	"github.com/kuroissaint/tubes2dpcc/communication-service/model"
-	"github.com/kuroissaint/tubes2dpcc/communication-service/repository"
-	"github.com/kuroissaint/tubes2dpcc/communication-service/service"
+	"github.com/gin-gonic/gin"
 )
 
-type dummyChatRepo struct{}
-
-func (r *dummyChatRepo) SaveMessage(ctx context.Context, msg model.ChatMessage) error {
-	return nil
-}
-
 func main() {
-	var repo repository.ChatRepository = &dummyChatRepo{}
-	svc := service.NewChatService(repo)
-	hdl := handler.NewChatHandler(svc)
+	db := ConnectDB()
+	repo := NewChatRepository(db)
+	service := NewChatService(repo)
 
-	http.HandleFunc("/api/chat/process", hdl.ProcessMessageHandler)
+	r := gin.Default()
 
-	fmt.Println("Communication Service running on :8082")
-	http.ListenAndServe(":8082", nil)
+	r.POST("/chat/send", func(c *gin.Context) {
+		var msg Message
+		if err := c.ShouldBindJSON(&msg); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Format data salah"})
+			return
+		}
+
+		err := service.SendMessage(c.Request.Context(), msg)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Pesan terkirim!"})
+	})
+
+	// Gunakan port 8009 agar tidak bentrok
+	r.Run(":8009")
 }
