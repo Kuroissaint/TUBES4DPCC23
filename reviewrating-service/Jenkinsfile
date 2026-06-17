@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        SERVICE_NAME = "review-rating-service"
-        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        SERVICE_NAME = "review-rating-service" 
+        DOCKER_IMAGE = "rifadanindra/${SERVICE_NAME}:${env.BUILD_NUMBER}"
         GOWORK = 'off'
     }
 
@@ -25,7 +25,7 @@ pipeline {
         stage('3. Lint / Vet') {
             steps {
                 dir('reviewrating-service') {
-                    bat 'go vet ./...'
+                        bat 'go vet ./...'
                 }
             }
         }
@@ -33,7 +33,7 @@ pipeline {
         stage('4. Build Image (Lokal)') {
             steps {
                 dir('reviewrating-service') {
-                    bat "docker build -t ${DOCKER_IMAGE} ."
+                        bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
         }
@@ -48,31 +48,23 @@ pipeline {
 
         stage('6. Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat "docker push ${DOCKER_IMAGE}"
-                }
+                bat "docker push ${DOCKER_IMAGE}"
             }
         }
 
         stage('7. Deploy di Kubernetes') {
             steps {
                 dir('reviewrating-service') {
-                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
-                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}"
-                    }
+                    bat "kubectl apply -f k8s/"
+                    bat "kubectl rollout restart deployment/${SERVICE_NAME}"
                 }
             }
         }
 
         stage('8. Verify') {
             steps {
-                dir('reviewrating-service') {
-                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
-                    }
-                }
+                bat "kubectl rollout status deployment/${SERVICE_NAME}"
+                bat "kubectl get pods -l app=${SERVICE_NAME}"
             }
         }
     }
