@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SERVICE_NAME = "merchant-service"
+        SERVICE_NAME = "account-service"
         DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
         GOWORK = 'off'
     }
@@ -16,7 +16,7 @@ pipeline {
 
         stage('2. Unit Tests') {
             steps {
-                dir('merchant-service') {
+                dir('account-service') {
                     bat 'go test ./... -v'
                 }
             }
@@ -24,7 +24,7 @@ pipeline {
 
         stage('3. Lint / Vet') {
             steps {
-                dir('merchant-service') {
+                dir('account-service') {
                     bat 'go vet ./...'
                 }
             }
@@ -32,7 +32,7 @@ pipeline {
 
         stage('4. Build Image (Lokal)') {
             steps {
-                dir('merchant-service') {
+                dir('account-service') {
                     bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
@@ -40,24 +40,26 @@ pipeline {
 
         stage('5. Functional Tests') {
             steps {
-                dir('merchant-service') {
+                dir('account-service') {
                     bat 'go test -tags=functional ./... -v'
                 }
             }
         }
 
-        stage('6. Push Image') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat "docker push ${DOCKER_IMAGE}"
-                }
-            }
+stage('6. Push Image') {
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+            bat """
+                docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                docker push ${DOCKER_IMAGE}
+            """
         }
+    }
+}
 
         stage('7. Deploy di Kubernetes') {
             steps {
-                dir('merchant-service') {
+                dir('account-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
                         bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
                         bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}"
@@ -68,7 +70,7 @@ pipeline {
 
         stage('8. Verify') {
             steps {
-                dir('merchant-service') {
+                dir('account-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
                         bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
                     }
