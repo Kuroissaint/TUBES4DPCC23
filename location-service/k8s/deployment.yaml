@@ -14,13 +14,15 @@ spec:
     spec:
       containers:
       - name: location-service
-        # Ganti ACKTUBES dengan nama Azure Container Registry kelompokmu nanti
-        image: acktubes.azurecr.io/location-service:latest
+        # Sudah diganti pakai nama Azure Container Registry milikmu
+        image: ojektubesregistry.azurecr.io/location-service:latest
         ports:
         - containerPort: 8002
         env:
         - name: SERVICE_PORT
           value: "8002"
+        - name: MONGO_URI
+          value: "mongodb://mongodb-service:27017"
 ---
 apiVersion: v1
 kind: Service
