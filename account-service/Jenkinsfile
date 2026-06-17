@@ -46,14 +46,17 @@ pipeline {
             }
         }
 
-        stage('6. Push Image') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat "docker push ${DOCKER_IMAGE}"
-                }
+       stage('6. Push Image') {
+    steps {
+        dir('account-service') { // Ditambahkan dir agar konsisten dengan stage lain jika diperlukan
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                // Tanda kurung memastikan tidak ada spasi di akhir token yang terkirim
+                bat '(echo %DOCKER_PASS%)| docker login -u %DOCKER_USER% --password-stdin'
+                bat "docker push ${DOCKER_IMAGE}"
             }
         }
+    }
+}
 
         stage('7. Deploy di Kubernetes') {
             steps {
