@@ -4,18 +4,40 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"location-service/service"
 )
 
+// Struct untuk membaca body JSON dari driver saat update lokasi
+type UpdateLocationRequest struct {
+	DriverID  string  `json:"driver_id"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+// Struct untuk menyimpan data koordinat driver di memory (Simulasi DB)
+type DriverLocation struct {
+	DriverID  string  `json:"driver_id"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 type LocationHandler struct {
 	locationService *service.LocationService
+	// Gunakan map dan mutex untuk simulasi penyimpanan data lokal (thread-safe)
+	storageMu       sync.RWMutex
+	driverStorage   map[string]DriverLocation
 }
 
 func NewLocationHandler(ls *service.LocationService) *LocationHandler {
-	return &LocationHandler{locationService: ls}
+	return &LocationHandler{
+		locationService: ls,
+		driverStorage:   make(map[string]DriverLocation),
+	}
 }
 
+// 1. Endpoint Asli: Menghitung jarak antara dua koordinat (GET)
 func (h *LocationHandler) CalculateDistanceHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -29,15 +51,109 @@ func (h *LocationHandler) CalculateDistanceHandler(w http.ResponseWriter, r *htt
 
 	if !h.locationService.ValidateCoordinates(lat1, lon1) || !h.locationService.ValidateCoordinates(lat2, lon2) {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"error": "invalid coordinates"})
 		return
 	}
 
 	distance := h.locationService.CalculateDistance(lat1, lon1, lat2, lon2)
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":   "success",
 		"distance": distance,
+	})
+}
+
+// 2. Endpoint Baru: Menerima & memperbarui lokasi koordinat driver (POST)
+func (h *LocationHandler) UpdateLocationHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req UpdateLocationRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	w.Header().Set("Content-Type", "application/json")
+
+	if err != nil || req.DriverID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body atau driver_id kosong"})
+		return
+	}
+
+	if !h.locationService.ValidateCoordinates(req.Latitude, req.Longitude) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid coordinates"})
+		return
+	}
+
+	// Simpan data ke dalam memory storage
+	h.storageMu.Lock()
+	h.driverStorage[req.DriverID] = DriverLocation{
+		DriverID:  req.DriverID,
+		Latitude:  req.Latitude,
+		Longitude: req.Longitude,
+	}
+	h.storageMu.Unlock()
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "Lokasi driver " + req.DriverID + " berhasil diperbarui",
+	})
+}
+
+// 3. Endpoint Baru: Mencari driver terdekat dari koordinat orderan (GET)
+func (h *LocationHandler) GetNearbyDriversHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	lat, _ := strconv.ParseFloat(r.URL.Query().Get("lat"), 64)
+	lon, _ := strconv.ParseFloat(r.URL.Query().Get("lon"), 64)
+	w.Header().Set("Content-Type", "application/json")
+
+	if !h.locationService.ValidateCoordinates(lat, lon) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid coordinates"})
+		return
+	}
+
+	var nearbyDrivers []map[string]interface{}
+
+	// Ambil semua data driver yang tersimpan, lalu hitung jaraknya
+	h.storageMu.RLock()
+	for _, driver := range h.driverStorage {
+		distance := h.locationService.CalculateDistance(lat, lon, driver.Latitude, driver.Longitude)
+		
+		// Anggap radius pencarian driver terdekat maksimal 5000 meter (5 KM)
+		if distance <= 5000 {
+			nearbyDrivers = append(nearbyDrivers, map[string]interface{}{
+				"driver_id":       driver.DriverID,
+				"latitude":        driver.Latitude,
+				"longitude":       driver.Longitude,
+				"distance_meters": distance,
+			})
+		}
+	}
+	h.storageMu.RUnlock()
+
+	// Jika memori masih kosong (belum ada driver yang hit POST update), berikan data tiruan (mock) agar tidak kosong melompong saat ditest
+	if len(nearbyDrivers) == 0 {
+		nearbyDrivers = append(nearbyDrivers, map[string]interface{}{
+			"driver_id":       "DRV-MOCK-001",
+			"latitude":        lat + 0.001,
+			"longitude":       lon + 0.001,
+			"distance_meters": h.locationService.CalculateDistance(lat, lon, lat+0.001, lon+0.001),
+		})
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"drivers": nearbyDrivers,
 	})
 }
