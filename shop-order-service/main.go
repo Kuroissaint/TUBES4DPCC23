@@ -39,6 +39,9 @@ func main() {
 	hdl := handler.NewOrderHandler(svc)
 
 	http.HandleFunc("/api/order/create", hdl.CreateOrderHandler)
+	http.HandleFunc("/api/order/get", hdl.GetOrderHandler)
+	// TAMBAHKAN INI:
+	http.HandleFunc("/api/order/update-status", hdl.UpdateStatusHandler)
 
 	fmt.Println("Shop-Order Service running on :8084")
 	log.Fatal(http.ListenAndServe(":8084", nil))

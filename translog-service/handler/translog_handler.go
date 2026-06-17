@@ -50,3 +50,34 @@ func (h *TranslogHandler) GetTransportHandler(w http.ResponseWriter, r *http.Req
 		"message": "Detail log pengiriman untuk order: " + orderID,
 	})
 }
+
+type UpdateTranslogPayload struct {
+	OrderID string `json:"order_id"`
+	Status  string `json:"status"`
+}
+
+// Tambahkan di bagian bawah file:
+func (h *TranslogHandler) UpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	var payload UpdateTranslogPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err := h.translogService.UpdateDeliveryStatus(payload.OrderID, payload.Status)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"message": "Status pengiriman berhasil diupdate",
+	})
+}
