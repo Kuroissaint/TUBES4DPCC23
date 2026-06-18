@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"shop-order-service/service"
+	"shop-order-service/model"
 )
 
 type OrderHandler struct {

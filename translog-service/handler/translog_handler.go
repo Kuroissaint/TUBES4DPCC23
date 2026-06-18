@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"translog-service/service"
+	"translog-service/model"
 )
 
 type TranslogHandler struct {
@@ -23,36 +24,34 @@ type CreateTranslogPayload struct {
 	ItemDimension float64 `json:"item_dimension"`
 }
 
-func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
+// func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *http.Request) {
+// 	if r.Method != http.MethodPost {
+// 		w.WriteHeader(http.StatusMethodNotAllowed)
+// 		return
+// 	}
 
-	// 1. Tangkap JSON dari Body Postman
-	var payload CreateTranslogPayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Format JSON tidak valid"})
-		return
-	}
+// 	// 1. Tangkap JSON dari Body Postman
+// 	var payload CreateTranslogPayload
+// 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+// 		w.WriteHeader(http.StatusBadRequest)
+// 		json.NewEncoder(w).Encode(map[string]string{"error": "Format JSON tidak valid"})
+// 		return
+// 	}
 
-	// 2. Eksekusi ke Service
-	// CATATAN KRITIS: Sama seperti shop-order, ubah service.go Anda
-	// agar CreateTransportOrder menerima parameter dari payload ini.
-	order, err := h.translogService.CreateTransportOrder() 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-		return
-	}
+// 	// 2. Eksekusi ke Service
+// 	order, err := h.translogService.CreateTransportOrder() 
+// 	if err != nil {
+// 		w.WriteHeader(http.StatusInternalServerError)
+// 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+// 		return
+// 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "success",
-		"data":   order, // order harus mengembalikan data yang baru saja disimpan
-	})
-}
+// 	w.WriteHeader(http.StatusCreated)
+// 	json.NewEncoder(w).Encode(map[string]interface{}{
+// 		"status": "success",
+// 		"data":   order, // order harus mengembalikan data yang baru saja disimpan
+// 	})
+// }
 
 // Tambahan handler agar bukan nano-service
 func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +88,19 @@ func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "success",
 		"data":   order,
+	})
+}
+
+func (h *TranslogHandler) GetTransportHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	orderID := r.URL.Query().Get("order_id")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"message": "Detail log pengiriman untuk order: " + orderID,
 	})
 }
 

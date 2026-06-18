@@ -43,7 +43,7 @@ func TestCreateShoppingOrder(t *testing.T) {
 	svc := service.NewShopOrderService(mockRepo)
 
 	// 5. Jalankan fungsi
-	cart, err := svc.CreateShoppingOrder()
+	cart, err := svc.CreateShoppingOrder(&model.ShoppingCart{})
 
 	// 6. Assertions (pengecekan hasil)
 	if err != nil {
