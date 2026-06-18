@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"shop-order-service/model"
 	"shop-order-service/service"
 )
 

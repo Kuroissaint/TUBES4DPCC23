@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"translog-service/model"
 	"translog-service/service"
 )
 
@@ -21,37 +22,6 @@ type CreateTranslogPayload struct {
 	Status        string  `json:"status"`
 	ServiceType   string  `json:"service_type"`
 	ItemDimension float64 `json:"item_dimension"`
-}
-
-func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	// 1. Tangkap JSON dari Body Postman
-	var payload CreateTranslogPayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Format JSON tidak valid"})
-		return
-	}
-
-	// 2. Eksekusi ke Service
-	// CATATAN KRITIS: Sama seperti shop-order, ubah service.go Anda
-	// agar CreateTransportOrder menerima parameter dari payload ini.
-	order, err := h.translogService.CreateTransportOrder() 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "success",
-		"data":   order, // order harus mengembalikan data yang baru saja disimpan
-	})
 }
 
 // Tambahan handler agar bukan nano-service
