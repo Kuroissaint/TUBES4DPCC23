@@ -3,9 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"sort" // <-- KITA TAMBAHKAN PACKAGES SORT UNTUK GEOSPATIAL SIMULATION
+	"sort"
 	"strconv"
-	"sync"
 
 	"location-service/service"
 )
@@ -17,23 +16,14 @@ type UpdateLocationRequest struct {
 	Longitude float64 `json:"longitude"`
 }
 
-// Struct untuk menyimpan data koordinat driver di memory (Simulasi DB)
-type DriverLocation struct {
-	DriverID  string  `json:"driver_id"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-}
-
 type LocationHandler struct {
 	locationService *service.LocationService
-	storageMu       sync.RWMutex
-	driverStorage   map[string]DriverLocation
+	// storageMu dan driverStorage dihapus karena digantikan MongoDB
 }
 
 func NewLocationHandler(ls *service.LocationService) *LocationHandler {
 	return &LocationHandler{
 		locationService: ls,
-		driverStorage:   make(map[string]DriverLocation),
 	}
 }
 
@@ -66,7 +56,7 @@ func (h *LocationHandler) CalculateDistanceHandler(w http.ResponseWriter, r *htt
 	})
 }
 
-// 2. Endpoint Baru: Menerima & memperbarui lokasi koordinat driver (POST)
+// 2. Endpoint Baru: Menerima & memperbarui lokasi koordinat driver ke MongoDB (POST)
 func (h *LocationHandler) UpdateLocationHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -89,23 +79,22 @@ func (h *LocationHandler) UpdateLocationHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Simpan data ke dalam memory storage
-	h.storageMu.Lock()
-	h.driverStorage[req.DriverID] = DriverLocation{
-		DriverID:  req.DriverID,
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
+	// === SEKARANG SIMPAN KE MONGODB VIA SERVICE ===
+	err = h.locationService.SaveDriverLocation(r.Context(), req.DriverID, req.Latitude, req.Longitude)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "gagal menyimpan koordinat ke mongodb: " + err.Error()})
+		return
 	}
-	h.storageMu.Unlock()
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "success",
-		"message": "Lokasi driver " + req.DriverID + " berhasil diperbarui",
+		"message": "Lokasi driver " + req.DriverID + " berhasil diperbarui di MongoDB",
 	})
 }
 
-// 3. Endpoint Baru: Mencari driver terdekat dari koordinat orderan (GET) dengan AUTO-SORT TERDEKAT
+// 3. Endpoint Baru: Mencari driver terdekat dari koordinat orderan via MongoDB Geospatial (GET)
 func (h *LocationHandler) GetNearbyDriversHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -122,7 +111,6 @@ func (h *LocationHandler) GetNearbyDriversHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Kita gunakan struct lokal agar fungsi sort di Go bisa membaca nilainya dengan mudah
 	type NearbyDriverInfo struct {
 		DriverID       string  `json:"driver_id"`
 		Latitude       float64 `json:"latitude"`
@@ -132,24 +120,32 @@ func (h *LocationHandler) GetNearbyDriversHandler(w http.ResponseWriter, r *http
 
 	var nearbyDrivers []NearbyDriverInfo
 
-	// Ambil semua data driver yang tersimpan di RAM, lalu hitung jaraknya
-	h.storageMu.RLock()
-	for _, driver := range h.driverStorage {
-		distance := h.locationService.CalculateDistance(lat, lon, driver.Latitude, driver.Longitude)
-		
-		// Anggap radius pencarian driver terdekat maksimal 5000 meter (5 KM)
-		if distance <= 5000 {
-			nearbyDrivers = append(nearbyDrivers, NearbyDriverInfo{
-				DriverID:       driver.DriverID,
-				Latitude:       driver.Latitude,
-				Longitude:      driver.Longitude,
-				DistanceMeters: distance,
-			})
-		}
+	// === AMBIL DATA DARI MONGODB VIA SERVICE (Radius 5000 meter) ===
+	driversFromDB, err := h.locationService.FindNearbyDrivers(r.Context(), lat, lon, 5000)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "gagal mengambil data dari database"})
+		return
 	}
-	h.storageMu.RUnlock()
 
-	// Jika memori RAM masih kosong, berikan data mock
+	// Mapping hasil query database ke struct Response
+	for _, doc := range driversFromDB {
+		// Mengingat urutan koordinat GeoJSON MongoDB adalah [lon, lat]
+		dLat := doc.Location.Coordinates[1]
+		dLon := doc.Location.Coordinates[0]
+
+		// Hitung jarak matematis presisi menggunakan rumus Haversine bawaan service
+		distance := h.locationService.CalculateDistance(lat, lon, dLat, dLon)
+
+		nearbyDrivers = append(nearbyDrivers, NearbyDriverInfo{
+			DriverID:       doc.DriverID,
+			Latitude:       dLat,
+			Longitude:      dLon,
+			DistanceMeters: distance,
+		})
+	}
+
+	// Jika MongoDB masih kosong, berikan fallback mock driver
 	if len(nearbyDrivers) == 0 {
 		mockDistance := h.locationService.CalculateDistance(lat, lon, lat+0.001, lon+0.001)
 		nearbyDrivers = append(nearbyDrivers, NearbyDriverInfo{
@@ -160,7 +156,7 @@ func (h *LocationHandler) GetNearbyDriversHandler(w http.ResponseWriter, r *http
 		})
 	}
 
-	// JURUS SAKTI GEOSPATIAL RAM: Urutkan array berdasarkan DistanceMeters dari yang TERKECIL!
+	// Sorting dari yang terdekat berdasarkan DistanceMeters
 	sort.Slice(nearbyDrivers, func(i, j int) bool {
 		return nearbyDrivers[i].DistanceMeters < nearbyDrivers[j].DistanceMeters
 	})
