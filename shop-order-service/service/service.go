@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"shop-order-service/model"
 	"shop-order-service/repository"
-
-	"github.com/google/uuid"
 )
 
 type ShopOrderService interface {
-	CreateShoppingOrder() (*model.ShoppingCart, error)
+	// 1. Tambahkan parameter cart di interface
+	CreateShoppingOrder(cart *model.ShoppingCart) (*model.ShoppingCart, error)
 	GetOrder(orderID string) (*model.ShoppingCart, error)
 	UpdateOrderStatus(orderID, status string) error
 }
@@ -25,18 +24,9 @@ func NewShopOrderService(repo repository.ShopOrderRepository) ShopOrderService {
 	return &ShopOrderServiceImpl{Repo: repo}
 }
 
-// 1. Perbaikan: Nama fungsi harus CreateShoppingOrder sesuai interface
-func (s *ShopOrderServiceImpl) CreateShoppingOrder() (*model.ShoppingCart, error) {
-	// Buat pesanan baru
-	cart := &model.ShoppingCart{
-		OrderID:    uuid.New().String(),
-		UserID:     uuid.New().String(),
-		MerchantID: uuid.New().String(),
-		Items:      []string{"Kopi Gula Aren", "Roti Bakar"},
-		Status:     "PAID", 
-	}
-
-	// Simpan ke database
+// 2. Terima parameter dari Handler, HAPUS hardcode UUID!
+func (s *ShopOrderServiceImpl) CreateShoppingOrder(cart *model.ShoppingCart) (*model.ShoppingCart, error) {
+	// Simpan ke database menggunakan data dinamis dari Postman
 	err := s.Repo.SaveCart(cart.OrderID, cart.UserID, cart.MerchantID, cart.Items, cart.Status)
 	if err != nil {
 		return nil, err
@@ -52,7 +42,8 @@ func (s *ShopOrderServiceImpl) CreateShoppingOrder() (*model.ShoppingCart, error
 	}
 	jsonData, _ := json.Marshal(translogPayload)
 
-	translogURL := "http://localhost:8085/api/translog/create"
+	// PERBAIKAN FATAL: Gunakan nama service Kubernetes, bukan localhost!
+	translogURL := "http://translog-service:8085/api/translog/create"
 	resp, errHTTP := http.Post(translogURL, "application/json", bytes.NewBuffer(jsonData))
 	
 	if errHTTP != nil {
@@ -62,17 +53,14 @@ func (s *ShopOrderServiceImpl) CreateShoppingOrder() (*model.ShoppingCart, error
 		fmt.Println("Success: Memanggil Translog secara otomatis untuk Order ID:", cart.OrderID)
 	}
 
-	// Perbaikan: Mengembalikan cart yang sudah dibuat (bukan orderID yang undefined)
 	return cart, nil
 }
 
-// 2. Perbaikan: Implementasi GetOrder yang menerima parameter orderID
+// (Biarkan implementasi GetOrder dan UpdateOrderStatus Anda yang lama di bawah sini)
 func (s *ShopOrderServiceImpl) GetOrder(orderID string) (*model.ShoppingCart, error) {
-	// Implementasi logika ambil data dari repo kalau sudah ada
 	return &model.ShoppingCart{OrderID: orderID, Status: "PAID"}, nil
 }
 
-// 3. Implementasi UpdateOrderStatus
 func (s *ShopOrderServiceImpl) UpdateOrderStatus(orderID, status string) error {
 	fmt.Printf("[SHOP-ORDER] Pesanan %s sukses di-update menjadi: %s\n", orderID, status)
 	return nil

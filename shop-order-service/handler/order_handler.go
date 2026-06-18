@@ -30,7 +30,6 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// 1. Tangkap JSON dari Body Postman
 	var payload CreateOrderPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -38,11 +37,17 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// 2. Eksekusi ke Service
-	// CATATAN KRITIS: Jika sebelumnya CreateShoppingOrder() tidak menerima parameter,
-	// Anda WAJIB merevisi file service.go agar fungsi ini bisa menerima payload ini.
-	// Contoh yang benar: h.orderService.CreateShoppingOrder(payload)
-	cart, err := h.orderService.CreateShoppingOrder() 
+	// 1. Petakan (Mapping) DTO ke Model
+	cartReq := &model.ShoppingCart{
+		OrderID:    payload.OrderID,
+		UserID:     payload.UserID,
+		MerchantID: payload.MerchantID,
+		Items:      payload.Items,
+		Status:     payload.Status,
+	}
+
+	// 2. Teruskan data tersebut ke Service
+	cart, err := h.orderService.CreateShoppingOrder(cartReq) 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -52,7 +57,7 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "success",
-		"data":   cart, // cart harus mengembalikan data yang baru saja disimpan
+		"data":   cart,
 	})
 }
 

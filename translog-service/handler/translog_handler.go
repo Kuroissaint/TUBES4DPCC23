@@ -55,18 +55,40 @@ func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *
 }
 
 // Tambahan handler agar bukan nano-service
-func (h *TranslogHandler) GetTransportHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	orderID := r.URL.Query().Get("order_id")
-	
-	w.WriteHeader(http.StatusOK)
+	var payload CreateTranslogPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Format JSON tidak valid"})
+		return
+	}
+
+	// 1. Petakan DTO ke Model
+	orderReq := &model.TransportOrder{
+		OrderID:       payload.OrderID,
+		UserID:        payload.UserID,
+		Status:        payload.Status,
+		ServiceType:   payload.ServiceType,
+		ItemDimension: payload.ItemDimension,
+	}
+
+	// 2. Teruskan ke Service
+	order, err := h.translogService.CreateTransportOrder(orderReq) 
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "success",
-		"message": "Detail log pengiriman untuk order: " + orderID,
+		"data":   order,
 	})
 }
 
