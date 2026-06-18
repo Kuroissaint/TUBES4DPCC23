@@ -16,6 +16,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		targetURL = "http://location-service-service:8002"
 	} else if strings.HasPrefix(r.URL.Path, "/dispatch") {
 		targetURL = "http://dispatch-service-service:8003"
+<<<<<<< HEAD
 
 	// 2. Routing untuk Shop Order & Translog
 	} else if strings.HasPrefix(r.URL.Path, "/api/order") {
@@ -48,6 +49,8 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		targetURL = "http://reviewrating-service:8008"
 
 	// Jika rute tidak ditemukan di daftar atas
+=======
+>>>>>>> 6e1565d031e0aa4899b96495fc91c46423db8ade
 	} else {
 		http.Error(w, "Gateway Error: Service Not Found for this path", http.StatusNotFound)
 		return
