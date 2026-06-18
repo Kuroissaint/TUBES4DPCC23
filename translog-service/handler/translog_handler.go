@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-
 	"translog-service/model"
 	"translog-service/service"
 )
@@ -17,14 +16,16 @@ func NewTranslogHandler(ts service.TranslogService) *TranslogHandler {
 }
 
 type CreateTranslogPayload struct {
-	OrderID       string  `json:"order_id"`
-	UserID        string  `json:"user_id"`
-	Status        string  `json:"status"`
-	ServiceType   string  `json:"service_type"`
-	ItemDimension float64 `json:"item_dimension"`
+	OrderID         string   `json:"order_id"`
+	UserID          string   `json:"user_id"`
+	Status          string   `json:"status"`
+	ServiceType     string   `json:"service_type"`
+	PickupLocation  string   `json:"pickup_location"`
+	DropoffLocation string   `json:"dropoff_location"`
+	ItemDimension   *float64 `json:"item_dimension"`
+	Fee             float64  `json:"fee"`
 }
 
-// Tambahan handler agar bukan nano-service
 func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -38,17 +39,18 @@ func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	// 1. Petakan DTO ke Model
 	orderReq := &model.TransportOrder{
-		OrderID:       payload.OrderID,
-		UserID:        payload.UserID,
-		Status:        payload.Status,
-		ServiceType:   payload.ServiceType,
-		ItemDimension: payload.ItemDimension,
+		OrderID:         payload.OrderID,
+		UserID:          payload.UserID,
+		Status:          payload.Status,
+		ServiceType:     payload.ServiceType,
+		PickupLocation:  payload.PickupLocation,
+		DropoffLocation: payload.DropoffLocation,
+		ItemDimension:   payload.ItemDimension,
+		Fee:             payload.Fee,
 	}
 
-	// 2. Teruskan ke Service
-	order, err := h.translogService.CreateTransportOrder(orderReq) 
+	order, err := h.translogService.CreateTransportOrder(orderReq)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})

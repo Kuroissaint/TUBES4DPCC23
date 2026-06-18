@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"sort" // <-- KITA TAMBAHKAN PACKAGES SORT UNTUK GEOSPATIAL SIMULATION
 	"strconv"
 	"sync"
 
@@ -25,7 +26,6 @@ type DriverLocation struct {
 
 type LocationHandler struct {
 	locationService *service.LocationService
-	// Gunakan map dan mutex untuk simulasi penyimpanan data lokal (thread-safe)
 	storageMu       sync.RWMutex
 	driverStorage   map[string]DriverLocation
 }
@@ -105,7 +105,7 @@ func (h *LocationHandler) UpdateLocationHandler(w http.ResponseWriter, r *http.R
 	})
 }
 
-// 3. Endpoint Baru: Mencari driver terdekat dari koordinat orderan (GET)
+// 3. Endpoint Baru: Mencari driver terdekat dari koordinat orderan (GET) dengan AUTO-SORT TERDEKAT
 func (h *LocationHandler) GetNearbyDriversHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -122,34 +122,48 @@ func (h *LocationHandler) GetNearbyDriversHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	var nearbyDrivers []map[string]interface{}
+	// Kita gunakan struct lokal agar fungsi sort di Go bisa membaca nilainya dengan mudah
+	type NearbyDriverInfo struct {
+		DriverID       string  `json:"driver_id"`
+		Latitude       float64 `json:"latitude"`
+		Longitude      float64 `json:"longitude"`
+		DistanceMeters float64 `json:"distance_meters"`
+	}
 
-	// Ambil semua data driver yang tersimpan, lalu hitung jaraknya
+	var nearbyDrivers []NearbyDriverInfo
+
+	// Ambil semua data driver yang tersimpan di RAM, lalu hitung jaraknya
 	h.storageMu.RLock()
 	for _, driver := range h.driverStorage {
 		distance := h.locationService.CalculateDistance(lat, lon, driver.Latitude, driver.Longitude)
 		
 		// Anggap radius pencarian driver terdekat maksimal 5000 meter (5 KM)
 		if distance <= 5000 {
-			nearbyDrivers = append(nearbyDrivers, map[string]interface{}{
-				"driver_id":       driver.DriverID,
-				"latitude":        driver.Latitude,
-				"longitude":       driver.Longitude,
-				"distance_meters": distance,
+			nearbyDrivers = append(nearbyDrivers, NearbyDriverInfo{
+				DriverID:       driver.DriverID,
+				Latitude:       driver.Latitude,
+				Longitude:      driver.Longitude,
+				DistanceMeters: distance,
 			})
 		}
 	}
 	h.storageMu.RUnlock()
 
-	// Jika memori masih kosong (belum ada driver yang hit POST update), berikan data tiruan (mock) agar tidak kosong melompong saat ditest
+	// Jika memori RAM masih kosong, berikan data mock
 	if len(nearbyDrivers) == 0 {
-		nearbyDrivers = append(nearbyDrivers, map[string]interface{}{
-			"driver_id":       "DRV-MOCK-001",
-			"latitude":        lat + 0.001,
-			"longitude":       lon + 0.001,
-			"distance_meters": h.locationService.CalculateDistance(lat, lon, lat+0.001, lon+0.001),
+		mockDistance := h.locationService.CalculateDistance(lat, lon, lat+0.001, lon+0.001)
+		nearbyDrivers = append(nearbyDrivers, NearbyDriverInfo{
+			DriverID:       "DRV-MOCK-001",
+			Latitude:       lat + 0.001,
+			Longitude:      lon + 0.001,
+			DistanceMeters: mockDistance,
 		})
 	}
+
+	// JURUS SAKTI GEOSPATIAL RAM: Urutkan array berdasarkan DistanceMeters dari yang TERKECIL!
+	sort.Slice(nearbyDrivers, func(i, j int) bool {
+		return nearbyDrivers[i].DistanceMeters < nearbyDrivers[j].DistanceMeters
+	})
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{

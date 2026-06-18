@@ -20,8 +20,8 @@ type CreateOrderRequest struct {
 type LocationServiceResponse struct {
 	Status  string `json:"status"`
 	Drivers []struct {
-		DriverID       string  `json:"driver_id"`
-		DistanceMeters float64 `json:"distance_meters"`
+		DriverID       string      `json:"driver_id"`
+		DistanceMeters interface{} `json:"distance_meters"` // <-- GANTI JADI interface{} DI SINI
 	} `json:"drivers"`
 }
 

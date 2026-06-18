@@ -6,6 +6,7 @@ package mocks
 
 import (
 	reflect "reflect"
+	model "translog-service/model"
 
 	gomock "github.com/golang/mock/gomock"
 )
@@ -34,15 +35,15 @@ func (m *MockTranslogRepository) EXPECT() *MockTranslogRepositoryMockRecorder {
 }
 
 // SaveOrder mocks base method.
-func (m *MockTranslogRepository) SaveOrder(orderID, userID, status, serviceType string, itemDimension float64) error {
+func (m *MockTranslogRepository) SaveOrder(order *model.TransportOrder) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveOrder", orderID, userID, status, serviceType, itemDimension)
+	ret := m.ctrl.Call(m, "SaveOrder", order)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SaveOrder indicates an expected call of SaveOrder.
-func (mr *MockTranslogRepositoryMockRecorder) SaveOrder(orderID, userID, status, serviceType, itemDimension interface{}) *gomock.Call {
+func (mr *MockTranslogRepositoryMockRecorder) SaveOrder(order interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveOrder", reflect.TypeOf((*MockTranslogRepository)(nil).SaveOrder), orderID, userID, status, serviceType, itemDimension)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveOrder", reflect.TypeOf((*MockTranslogRepository)(nil).SaveOrder), order)
 }

@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-
 	"shop-order-service/model"
 	"shop-order-service/service"
 )
@@ -17,14 +16,15 @@ func NewOrderHandler(os service.ShopOrderService) *OrderHandler {
 }
 
 type CreateOrderPayload struct {
-	OrderID    string   `json:"order_id"`
-	UserID     string   `json:"user_id"`
-	MerchantID string   `json:"merchant_id"`
-	Items      []string `json:"items"`
-	Status     string   `json:"status"`
+	OrderID         string   `json:"order_id"`
+	UserID          string   `json:"user_id"`
+	MerchantID      string   `json:"merchant_id"`
+	Items           []string `json:"items"`
+	TotalPrice      float64  `json:"total_price"`
+	DeliveryAddress string   `json:"delivery_address"`
+	Status          string   `json:"status"`
 }
 
-// 1. Handler untuk Create Order (Sudah ada sebelumnya)
 func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -38,17 +38,18 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// 1. Petakan (Mapping) DTO ke Model
 	cartReq := &model.ShoppingCart{
-		OrderID:    payload.OrderID,
-		UserID:     payload.UserID,
-		MerchantID: payload.MerchantID,
-		Items:      payload.Items,
-		Status:     payload.Status,
+		OrderID:         payload.OrderID,
+		UserID:          payload.UserID,
+		MerchantID:      payload.MerchantID,
+		Items:           payload.Items,
+		TotalPrice:      payload.TotalPrice,
+		DeliveryAddress: payload.DeliveryAddress,
+		PaymentStatus:   "UNPAID", // Default sistem
+		Status:          payload.Status,
 	}
 
-	// 2. Teruskan data tersebut ke Service
-	cart, err := h.orderService.CreateShoppingOrder(cartReq) 
+	cart, err := h.orderService.CreateShoppingOrder(cartReq)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -61,6 +62,7 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 		"data":   cart,
 	})
 }
+
 
 // 2. Handler untuk Get Order (Ini yang tadi bikin error undefined)
 func (h *OrderHandler) GetOrderHandler(w http.ResponseWriter, r *http.Request) {

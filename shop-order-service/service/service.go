@@ -10,7 +10,6 @@ import (
 )
 
 type ShopOrderService interface {
-	// 1. Tambahkan parameter cart di interface
 	CreateShoppingOrder(cart *model.ShoppingCart) (*model.ShoppingCart, error)
 	GetOrder(orderID string) (*model.ShoppingCart, error)
 	UpdateOrderStatus(orderID, status string) error
@@ -24,28 +23,28 @@ func NewShopOrderService(repo repository.ShopOrderRepository) ShopOrderService {
 	return &ShopOrderServiceImpl{Repo: repo}
 }
 
-// 2. Terima parameter dari Handler, HAPUS hardcode UUID!
 func (s *ShopOrderServiceImpl) CreateShoppingOrder(cart *model.ShoppingCart) (*model.ShoppingCart, error) {
-	// Simpan ke database menggunakan data dinamis dari Postman
-	err := s.Repo.SaveCart(cart.OrderID, cart.UserID, cart.MerchantID, cart.Items, cart.Status)
+	err := s.Repo.SaveCart(cart)
 	if err != nil {
 		return nil, err
 	}
 
-	// Komunikasi otomatis ke Translog
+	// Komunikasi otomatis ke Translog (Menggunakan data dinamis yang baru)
 	translogPayload := map[string]interface{}{
-		"order_id":       cart.OrderID,
-		"user_id":        cart.UserID,
-		"status":         "WAITING_FOR_DRIVER",
-		"service_type":   "REGULAR",
-		"item_dimension": 1.5,
+		"order_id":         cart.OrderID,
+		"user_id":          cart.UserID,
+		"status":           "WAITING_FOR_DRIVER",
+		"service_type":     "GOSEND",
+		"pickup_location":  "Toko Merchant " + cart.MerchantID, // Simulasi alamat toko
+		"dropoff_location": cart.DeliveryAddress,               // Alamat dari pemesan
+		"item_dimension":   1.5,
+		"fee":              15000.00, // Simulasi ongkir tetap untuk GoMart
 	}
 	jsonData, _ := json.Marshal(translogPayload)
 
-	// PERBAIKAN FATAL: Gunakan nama service Kubernetes, bukan localhost!
 	translogURL := "http://translog-service:8085/api/translog/create"
 	resp, errHTTP := http.Post(translogURL, "application/json", bytes.NewBuffer(jsonData))
-	
+
 	if errHTTP != nil {
 		fmt.Println("Warning: Gagal menghubungi Translog Service:", errHTTP)
 	} else {
@@ -56,7 +55,6 @@ func (s *ShopOrderServiceImpl) CreateShoppingOrder(cart *model.ShoppingCart) (*m
 	return cart, nil
 }
 
-// (Biarkan implementasi GetOrder dan UpdateOrderStatus Anda yang lama di bawah sini)
 func (s *ShopOrderServiceImpl) GetOrder(orderID string) (*model.ShoppingCart, error) {
 	return &model.ShoppingCart{OrderID: orderID, Status: "PAID"}, nil
 }
