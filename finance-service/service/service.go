@@ -1,32 +1,41 @@
 package service
 
-import "finance-service/repository"
+import (
+	"encoding/json"
+	"finance-service/model"
+	"finance-service/repository"
+	"fmt"
+	"net/http"
+)
 
 type WalletService struct {
-	repo repository.WalletRepository
+	repo       repository.WalletRepository
+	pricingURL string
 }
 
-func NewWalletService(r repository.WalletRepository) *WalletService {
-	return &WalletService{repo: r}
+func NewWalletService(r repository.WalletRepository, pURL string) *WalletService {
+	return &WalletService{repo: r, pricingURL: pURL}
 }
 
-// TopUpWallet adalah fungsi simulasi isi saldo
-func (s *WalletService) TopUpWallet(userID string, amount int) (int, error) {
-	// 1. Cek saldo awal user dari database/mock
-	currentBalance, err := s.repo.GetBalance(userID)
-	if err != nil {
-		return 0, err
+func (s *WalletService) ProcessTopUp(userID string, amount float64, promoCode string) (float64, error) {
+	finalAmount := amount
+	
+	// Integrasi ke Pricing Service
+	if promoCode != "" {
+		url := fmt.Sprintf("%s/api/pricing/calculate?amount=%f&promo=%s", s.pricingURL, amount, promoCode)
+		resp, err := http.Get(url)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var pr model.PricingResponse
+			json.NewDecoder(resp.Body).Decode(&pr)
+			finalAmount = pr.FinalAmount
+			resp.Body.Close()
+		}
 	}
 
-	// 2. Tambahkan saldo lama dengan jumlah top-up
-	newBalance := currentBalance + amount
+	// Update Saldo
+	currentBalance, _ := s.repo.GetBalance(userID)
+	newBalance := currentBalance + finalAmount
+	s.repo.UpdateBalance(userID, newBalance)
 
-	// 3. Simpan perubahan saldo ke database/mock
-	err = s.repo.UpdateBalance(userID, newBalance)
-	if err != nil {
-		return 0, err
-	}
-
-	// 4. Kembalikan saldo terbaru
 	return newBalance, nil
 }
