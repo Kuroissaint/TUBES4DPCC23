@@ -27,7 +27,8 @@ func TestCreateTransportOrder(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockTranslogRepository(ctrl)
-	mockRepo.EXPECT().SaveOrder(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	dim := 10.0
+	mockRepo.EXPECT().SaveOrder(gomock.Any()).Return(nil)
 
 	svc := service.NewTranslogService(mockRepo)
 	req := &model.TransportOrder{
@@ -35,7 +36,7 @@ func TestCreateTransportOrder(t *testing.T) {
 		UserID:        "user-1",
 		Status:        "SEARCHING",
 		ServiceType:   "REGULAR",
-		ItemDimension: 10.0,
+		ItemDimension: &dim,
 	}
 	order, err := svc.CreateTransportOrder(req)
 

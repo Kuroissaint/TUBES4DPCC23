@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
 	"translog-service/model"
 	"translog-service/repository"
 )
 
 type TranslogService interface {
-	// 1. Tambahkan parameter request di interface
 	CreateTransportOrder(order *model.TransportOrder) (*model.TransportOrder, error)
 	ValidateStatusTransition(currentStatus, newStatus string) error
 	UpdateDeliveryStatus(orderID, status string) error
@@ -32,9 +30,8 @@ func (s *TranslogServiceImpl) ValidateStatusTransition(currentStatus, newStatus 
 	return nil
 }
 
-// 2. Terima parameter dari Handler
 func (s *TranslogServiceImpl) CreateTransportOrder(order *model.TransportOrder) (*model.TransportOrder, error) {
-	err := s.Repo.SaveOrder(order.OrderID, order.UserID, order.Status, order.ServiceType, order.ItemDimension)
+	err := s.Repo.SaveOrder(order)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +48,6 @@ func (s *TranslogServiceImpl) UpdateDeliveryStatus(orderID, status string) error
 		}
 		jsonData, _ := json.Marshal(payload)
 
-		// PERBAIKAN FATAL: Gunakan DNS Kubernetes, bukan localhost!
 		shopURL := "http://shop-order-service:8084/api/order/update-status"
 		resp, err := http.Post(shopURL, "application/json", bytes.NewBuffer(jsonData))
 

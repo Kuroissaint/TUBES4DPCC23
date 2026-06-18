@@ -62,11 +62,7 @@ func TestCreateShoppingOrder(t *testing.T) {
 
 	// 3. Set Ekspektasi: SaveCart
 	mockRepo.EXPECT().SaveCart(
-		gomock.Any(), // orderID
-		gomock.Any(), // userID
-		gomock.Any(), // merchantID
-		gomock.Any(), // items
-		gomock.Any(), // status
+		gomock.Any(), // cart
 	).Return(nil).Times(1)
 
 	// 4. Injeksi mock ke service
