@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SERVICE_NAME = "account-service"
+        SERVICE_NAME = "merchant-service"
         DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
         GOWORK = 'off'
     }
@@ -16,7 +16,7 @@ pipeline {
 
         stage('2. Unit Tests') {
             steps {
-                dir('account-service') {
+                dir('merchant-service') {
                     bat 'go test ./... -v'
                 }
             }
@@ -24,7 +24,7 @@ pipeline {
 
         stage('3. Lint / Vet') {
             steps {
-                dir('account-service') {
+                dir('merchant-service') {
                     bat 'go vet ./...'
                 }
             }
@@ -32,7 +32,7 @@ pipeline {
 
         stage('4. Build Image (Lokal)') {
             steps {
-                dir('account-service') {
+                dir('merchant-service') {
                     bat "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
@@ -40,7 +40,7 @@ pipeline {
 
         stage('5. Functional Tests') {
             steps {
-                dir('account-service') {
+                dir('merchant-service') {
                     bat 'go test -tags=functional ./... -v'
                 }
             }
@@ -59,7 +59,7 @@ stage('6. Push Image') {
 
         stage('7. Deploy di Kubernetes') {
             steps {
-                dir('account-service') {
+                dir('merchant-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
                         bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
                         bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}"
@@ -70,7 +70,7 @@ stage('6. Push Image') {
 
         stage('8. Verify') {
             steps {
-                dir('account-service') {
+                dir('merchant-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
                         bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
                     }
