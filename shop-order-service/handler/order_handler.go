@@ -15,6 +15,14 @@ func NewOrderHandler(os service.ShopOrderService) *OrderHandler {
 	return &OrderHandler{orderService: os}
 }
 
+type CreateOrderPayload struct {
+	OrderID    string   `json:"order_id"`
+	UserID     string   `json:"user_id"`
+	MerchantID string   `json:"merchant_id"`
+	Items      []string `json:"items"`
+	Status     string   `json:"status"`
+}
+
 // 1. Handler untuk Create Order (Sudah ada sebelumnya)
 func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -22,7 +30,19 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	cart, err := h.orderService.CreateShoppingOrder()
+	// 1. Tangkap JSON dari Body Postman
+	var payload CreateOrderPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Format JSON tidak valid"})
+		return
+	}
+
+	// 2. Eksekusi ke Service
+	// CATATAN KRITIS: Jika sebelumnya CreateShoppingOrder() tidak menerima parameter,
+	// Anda WAJIB merevisi file service.go agar fungsi ini bisa menerima payload ini.
+	// Contoh yang benar: h.orderService.CreateShoppingOrder(payload)
+	cart, err := h.orderService.CreateShoppingOrder() 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -32,7 +52,7 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "success",
-		"data":   cart,
+		"data":   cart, // cart harus mengembalikan data yang baru saja disimpan
 	})
 }
 
