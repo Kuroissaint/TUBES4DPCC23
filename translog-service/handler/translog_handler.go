@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"translog-service/model"
 	"translog-service/service"
 )
 
@@ -15,13 +16,39 @@ func NewTranslogHandler(ts service.TranslogService) *TranslogHandler {
 	return &TranslogHandler{translogService: ts}
 }
 
+type CreateTranslogPayload struct {
+	OrderID       string  `json:"order_id"`
+	UserID        string  `json:"user_id"`
+	Status        string  `json:"status"`
+	ServiceType   string  `json:"service_type"`
+	ItemDimension float64 `json:"item_dimension"`
+}
+
+// Tambahan handler agar bukan nano-service
 func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
-	order, err := h.translogService.CreateTransportOrder()
+	var payload CreateTranslogPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Format JSON tidak valid"})
+		return
+	}
+
+	// 1. Petakan DTO ke Model
+	orderReq := &model.TransportOrder{
+		OrderID:       payload.OrderID,
+		UserID:        payload.UserID,
+		Status:        payload.Status,
+		ServiceType:   payload.ServiceType,
+		ItemDimension: payload.ItemDimension,
+	}
+
+	// 2. Teruskan ke Service
+	order, err := h.translogService.CreateTransportOrder(orderReq) 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -32,22 +59,6 @@ func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "success",
 		"data":   order,
-	})
-}
-
-// Tambahan handler agar bukan nano-service
-func (h *TranslogHandler) GetTransportHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	orderID := r.URL.Query().Get("order_id")
-	
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "success",
-		"message": "Detail log pengiriman untuk order: " + orderID,
 	})
 }
 
@@ -81,3 +92,4 @@ func (h *TranslogHandler) UpdateStatusHandler(w http.ResponseWriter, r *http.Req
 		"message": "Status pengiriman berhasil diupdate",
 	})
 }
+

@@ -40,7 +40,7 @@ func main() {
 	hdl := handler.NewTranslogHandler(svc)
 
 	http.HandleFunc("/api/translog/create", hdl.CreateTransportOrderHandler)
-	http.HandleFunc("/api/translog/get", hdl.GetTransportHandler) // Tambahkan rute ini
+	// http.HandleFunc("/api/translog/get", hdl.GetTransportHandler) // Tambahkan rute ini (Belum diimplementasikan)
 	http.HandleFunc("/api/translog/update-status", hdl.UpdateStatusHandler)
 	
 	fmt.Println("Translog Service running on :8085")

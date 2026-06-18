@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Nama service disesuaikan
         SERVICE_NAME = "communication-service" 
-        DOCKER_IMAGE = "my-registry/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
     }
 
     stages {

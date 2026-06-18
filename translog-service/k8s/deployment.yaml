@@ -24,4 +24,4 @@ spec:
           valueFrom:
             secretKeyRef:
               name: db-credentials
-              key: DATABASE_URL
+              key: TRANSLOG_DB_URL

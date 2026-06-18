@@ -3,6 +3,7 @@ package service_test
 import (
 	"testing"
 	"translog-service/mocks"
+	"translog-service/model"
 	"translog-service/service"
 	"github.com/golang/mock/gomock"
 )
@@ -29,7 +30,14 @@ func TestCreateTransportOrder(t *testing.T) {
 	mockRepo.EXPECT().SaveOrder(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	svc := service.NewTranslogService(mockRepo)
-	order, err := svc.CreateTransportOrder()
+	req := &model.TransportOrder{
+		OrderID:       "123",
+		UserID:        "user-1",
+		Status:        "SEARCHING",
+		ServiceType:   "REGULAR",
+		ItemDimension: 10.0,
+	}
+	order, err := svc.CreateTransportOrder(req)
 
 	if err != nil {
 		t.Errorf("Tidak ekspektasi error, tapi dapat: %v", err)

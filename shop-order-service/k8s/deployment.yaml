@@ -24,5 +24,5 @@ spec:
           valueFrom:
             secretKeyRef:
               name: db-credentials
-              key: DATABASE_URL
+              key: SHOP_ORDER_DB_URL
 

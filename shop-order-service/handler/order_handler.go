@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"shop-order-service/model"
 	"shop-order-service/service"
 )
 
@@ -15,6 +16,14 @@ func NewOrderHandler(os service.ShopOrderService) *OrderHandler {
 	return &OrderHandler{orderService: os}
 }
 
+type CreateOrderPayload struct {
+	OrderID    string   `json:"order_id"`
+	UserID     string   `json:"user_id"`
+	MerchantID string   `json:"merchant_id"`
+	Items      []string `json:"items"`
+	Status     string   `json:"status"`
+}
+
 // 1. Handler untuk Create Order (Sudah ada sebelumnya)
 func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -22,7 +31,24 @@ func (h *OrderHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	cart, err := h.orderService.CreateShoppingOrder()
+	var payload CreateOrderPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Format JSON tidak valid"})
+		return
+	}
+
+	// 1. Petakan (Mapping) DTO ke Model
+	cartReq := &model.ShoppingCart{
+		OrderID:    payload.OrderID,
+		UserID:     payload.UserID,
+		MerchantID: payload.MerchantID,
+		Items:      payload.Items,
+		Status:     payload.Status,
+	}
+
+	// 2. Teruskan data tersebut ke Service
+	cart, err := h.orderService.CreateShoppingOrder(cartReq) 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
