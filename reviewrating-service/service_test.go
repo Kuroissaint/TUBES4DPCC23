@@ -5,8 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/kuroissaint/tubes2dpcc/reviewrating-service"
-	"github.com/kuroissaint/tubes2dpcc/reviewrating-service/mocks"
+	"github.com/kuroissaint/TUBES4DPCC23/reviewrating-service/mocks"
 )
 
 func TestSubmitReview_Failed_RatingTooHigh(t *testing.T) {
@@ -14,9 +13,11 @@ func TestSubmitReview_Failed_RatingTooHigh(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockReviewRepository(ctrl)
-	service := reviewrating.NewReviewService(mockRepo)
+	// Hapus awalan reviewrating.
+	service := NewReviewService(mockRepo)
 
-	invalidReview := reviewrating.Review{
+	// Hapus awalan reviewrating.
+	invalidReview := Review{
 		OrderID:  "ORD-111",
 		UserID:   "USR-222",
 		DriverID: "DRV-333",
@@ -32,7 +33,9 @@ func TestSubmitReview_Failed_RatingTooHigh(t *testing.T) {
 	if err == nil {
 		t.Errorf("Ekspektasi muncul error validasi rating, tapi malah sukses")
 	}
-	expectedErr := "rating tidak valid: harus berada di antara rentang angka 1 sampai 5"
+	
+	// Kata "rentang angka" dihapus agar persis dengan service.go
+	expectedErr := "rating tidak valid: harus berada di antara 1 sampai 5"
 	if err.Error() != expectedErr {
 		t.Errorf("Ekspektasi pesan error '%s', mendapat: '%v'", expectedErr, err.Error())
 	}
@@ -43,9 +46,11 @@ func TestSubmitReview_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mocks.NewMockReviewRepository(ctrl)
-	service := reviewrating.NewReviewService(mockRepo)
+	// Hapus awalan reviewrating.
+	service := NewReviewService(mockRepo)
 
-	validReview := reviewrating.Review{
+	// Hapus awalan reviewrating.
+	validReview := Review{
 		OrderID:  "ORD-111",
 		UserID:   "USR-222",
 		DriverID: "DRV-333",

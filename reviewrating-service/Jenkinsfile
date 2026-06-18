@@ -49,6 +49,8 @@ pipeline {
         stage('6. Push Image') {
             steps {
                 bat "docker push ${DOCKER_IMAGE}"
+                bat "docker tag ${DOCKER_IMAGE} kelcloud23/${SERVICE_NAME}:latest"
+                bat "docker push kelcloud23/${SERVICE_NAME}:latest"
             }
         }
 
