@@ -4,7 +4,6 @@ import (
 	"testing"
 	"translog-service/mocks"
 	"translog-service/service"
-	"translog-service/model"
 	"github.com/golang/mock/gomock"
 )
 
@@ -30,7 +29,7 @@ func TestCreateTransportOrder(t *testing.T) {
 	mockRepo.EXPECT().SaveOrder(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 	svc := service.NewTranslogService(mockRepo)
-	order, err := svc.CreateTransportOrder(&model.TransportOrder{})
+	order, err := svc.CreateTransportOrder()
 
 	if err != nil {
 		t.Errorf("Tidak ekspektasi error, tapi dapat: %v", err)
