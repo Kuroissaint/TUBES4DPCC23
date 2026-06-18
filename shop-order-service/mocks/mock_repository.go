@@ -6,6 +6,7 @@ package mocks
 
 import (
 	reflect "reflect"
+	model "shop-order-service/model"
 
 	gomock "github.com/golang/mock/gomock"
 )
@@ -34,15 +35,15 @@ func (m *MockShopOrderRepository) EXPECT() *MockShopOrderRepositoryMockRecorder 
 }
 
 // SaveCart mocks base method.
-func (m *MockShopOrderRepository) SaveCart(orderID, userID, merchantID string, items []string, status string) error {
+func (m *MockShopOrderRepository) SaveCart(cart *model.ShoppingCart) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveCart", orderID, userID, merchantID, items, status)
+	ret := m.ctrl.Call(m, "SaveCart", cart)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SaveCart indicates an expected call of SaveCart.
-func (mr *MockShopOrderRepositoryMockRecorder) SaveCart(orderID, userID, merchantID, items, status interface{}) *gomock.Call {
+func (mr *MockShopOrderRepositoryMockRecorder) SaveCart(cart interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveCart", reflect.TypeOf((*MockShopOrderRepository)(nil).SaveCart), orderID, userID, merchantID, items, status)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveCart", reflect.TypeOf((*MockShopOrderRepository)(nil).SaveCart), cart)
 }
