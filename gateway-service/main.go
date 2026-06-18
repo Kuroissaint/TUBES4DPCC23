@@ -13,18 +13,10 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	if strings.HasPrefix(r.URL.Path, "/location") {
 		targetURL = "http://location-service-service:8002"
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/location")
+		// Kita TIDAK LAGI memotong /location, biarkan utuh!
 	} else if strings.HasPrefix(r.URL.Path, "/dispatch") {
 		targetURL = "http://dispatch-service-service:8003"
-		
-		// TRICK SAKTI: Kita paksa timpa r.URL.Path DAN r.RequestURI ke rute asli handlermu!
-		// Supaya si dispatch di sana gak nyasar ke rute "/" lagi akibat masalah proxy Go.
-		if strings.Contains(r.URL.Path, "orders") {
-			r.URL.Path = "/api/dispatch/orders"
-			r.RequestURI = "/api/dispatch/orders"
-		} else {
-			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/dispatch")
-		}
+		// Kita TIDAK LAGI memotong /dispatch, biarkan utuh sampai ke belakang!
 	} else {
 		http.Error(w, "Service Not Found", http.StatusNotFound)
 		return
