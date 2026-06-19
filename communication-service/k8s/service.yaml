@@ -7,6 +7,6 @@ spec:
     app: communication-service
   ports:
     - protocol: TCP
-      port: 8005
-      targetPort: 8005
+      port: 8009
+      targetPort: 8009
   type: ClusterIP
