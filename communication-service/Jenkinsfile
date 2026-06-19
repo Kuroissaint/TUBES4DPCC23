@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Nama service disesuaikan
         SERVICE_NAME = "communication-service" 
         DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
     }
@@ -16,52 +15,59 @@ pipeline {
 
         stage('2. Unit Tests') {
             steps {
-                // Menjalankan unit test dengan gomock (pasti ada yang fail di awal)
-                bat 'go test ./... -v'
+                // Masuk ke folder service sebelum testing
+                dir('communication-service') {
+                    bat 'go test ./... -v'
+                }
             }
         }
 
         stage('3. Lint / Vet') {
             steps {
-                // Mengecek kejanggalan pada kode Golang
-                bat 'go vet ./...'
+                dir('communication-service') {
+                    bat 'go vet ./...'
+                }
             }
         }
 
         stage('4. Build Image (Lokal)') {
             steps {
-                // Build docker image
-                bat "docker build -t ${DOCKER_IMAGE} ."
+                // Masuk ke folder service karena Dockerfile ada di sini
+                dir('communication-service') {
+                    bat "docker build -t ${DOCKER_IMAGE} ."
+                }
             }
         }
 
         stage('5. Functional Tests') {
             steps {
-                // Jalankan test yang butuh DB lokal/container (Cassandra/Mongo)
-                // Menggunakan tags agar terpisah dari Unit Test
-                bat 'go test -tags=functional ./... -v'
+                dir('communication-service') {
+                    bat 'go test -tags=functional ./... -v'
+                }
             }
         }
 
         stage('6. Push Image') {
             steps {
-                // Push ke registry (opsional di lokal, tapi wajib di pipeline)
+                // Push image tidak butuh masuk folder
                 bat "docker push ${DOCKER_IMAGE}"
+                bat "docker tag ${DOCKER_IMAGE} kelcloud23/${SERVICE_NAME}:latest"
+                bat "docker push kelcloud23/${SERVICE_NAME}:latest"
             }
         }
 
         stage('7. Deploy di Kubernetes') {
             steps {
-                // Update manifest k8s dengan image terbaru dan apply
-                bat "kubectl apply -f k8s/"
-                // Restart pods agar menggunakan image terbaru
+                // Masuk ke folder service karena folder k8s/ ada di sini
+                dir('communication-service') {
+                    bat "kubectl apply -f k8s/"
+                }
                 bat "kubectl rollout restart deployment/${SERVICE_NAME}"
             }
         }
 
         stage('8. Verify') {
             steps {
-                // Memastikan pods berjalan dengan baik (tidak CrashLoopBackOff)
                 bat "kubectl rollout status deployment/${SERVICE_NAME}"
                 bat "kubectl get pods -l app=${SERVICE_NAME}"
             }
