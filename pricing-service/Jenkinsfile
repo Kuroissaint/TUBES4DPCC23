@@ -57,7 +57,6 @@ pipeline {
         stage('6. Push Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    // Kita hilangkan echo dan pipe agar Windows tidak menambah spasi siluman
                     bat '''
                         docker login -u %DOCKER_USER% -p %DOCKER_PASS%
                         docker push ''' + DOCKER_IMAGE
