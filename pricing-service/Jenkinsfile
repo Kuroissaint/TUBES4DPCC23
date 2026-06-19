@@ -81,9 +81,14 @@ pipeline {
             steps {
                 dir('pricing-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        bat """
-                            kubectl --kubeconfig="%KUBECONFIG_TMP%" rollout status deployment/${SERVICE_NAME} --timeout=60s
-                        """
+                        // 1. Cek status pod (Apakah CrashLoopBackOff, Error, dll)
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" get pods -l app=pricing-service'
+                        
+                        // 2. Cek event deployment untuk melihat pesan error dari Kubernetes
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" describe deployment pricing-service'
+
+                        // 3. Perintah aslimu (yang bikin timeout)
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" rollout status deployment/pricing-service --timeout=60s'
                     }
                 }
             }
