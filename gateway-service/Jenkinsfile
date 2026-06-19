@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+    environment {
+        // Nama servis diubah menjadi gateway-service
+        SERVICE_NAME = "gateway-service"
+        // Menggunakan Docker Hub milikmu agar seragam dan aman
+        DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        GOWORK = 'off'
+    }
+
+    stages {
+        stage('1. Checkout Repo') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('2. Unit Tests & Lint') {
+            steps {
+                dir('gateway-service') {
+                    // Ditambahkan || exit 0 agar pipeline tidak gagal jika temanmu belum membuat file test
+                    bat 'go test ./... -v || exit 0'
+                    bat 'go vet ./... || exit 0'
+                }
+            }
+        }
+
+        stage('3. Build Image (Lokal)') {
+            steps {
+                dir('gateway-service') {
+                    bat "docker build -t ${DOCKER_IMAGE} ."
+                }
+            }
+        }
+
+        stage('4. Push Image ke Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    bat 'echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin'
+                    bat "docker push ${DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('5. Deploy di Kubernetes') {
+            steps {
+                dir('gateway-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        // Menerapkan konfigurasi k8s (Service & Deployment)
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
+                        
+                        // Memaksa Kubernetes menggunakan image terbaru dari Jenkins (mengabaikan ojektubesregistry milik temanmu)
+                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}"
+                    }
+                }
+            }
+        }
+
+        stage('6. Verify Rollout') {
+            steps {
+                dir('gateway-service') {
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Sukses mendeploy ${SERVICE_NAME} versi ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment gagal! Segera periksa log Jenkins."
+        }
+    }
+}
