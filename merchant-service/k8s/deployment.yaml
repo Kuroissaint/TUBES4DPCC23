@@ -23,7 +23,7 @@ spec:
         image: firdaaridzkii/merchant-service:latest
 
         ports:
-        - containerPort: 8081
+        - containerPort: 8089
 
         env:
         - name: DB_HOST

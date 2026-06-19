@@ -1,13 +1,14 @@
 package model
 
-type WebResponse struct {
-	Status  string      `json:"status"`
-	Data    interface{} `json:"data"`
-	Message string      `json:"message"`
+// Struktur GeoJSON untuk MongoDB
+type GeoJson struct {
+	Type        string    `bson:"type" json:"type"`
+	Coordinates []float64 `bson:"coordinates" json:"coordinates"` // [longitude, latitude]
 }
 
-type LocationData struct {
-	UserID    string  `json:"user_id"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+// Struktur Driver yang disimpan di DB
+type DriverLocationDoc struct {
+	DriverID  string  `bson:"driver_id" json:"driver_id"`
+	Location  GeoJson `bson:"location" json:"location"`
+	UpdatedAt string  `bson:"updated_at" json:"updated_at"`
 }

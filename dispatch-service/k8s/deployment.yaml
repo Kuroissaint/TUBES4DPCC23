@@ -12,9 +12,11 @@ spec:
       labels:
         app: dispatch-service
     spec:
+      imagePullSecrets:
+      - name: kuncimudrik
       containers:
       - name: dispatch-service
-        image: ojektubesregistry.azurecr.io/dispatch-service:v99
+        image: ojektubesregistry.azurecr.io/dispatch-service:v100
         imagePullPolicy: Always
         ports:
         - containerPort: 8003

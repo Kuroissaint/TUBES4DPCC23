@@ -4,12 +4,13 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"shop-order-service/model"
 
-	"github.com/lib/pq" // Butuh library pq buat handle array string
+	"github.com/lib/pq"
 )
 
 type ShopOrderRepository interface {
-	SaveCart(orderID string, userID string, merchantID string, items []string, status string) error
+	SaveCart(cart *model.ShoppingCart) error
 }
 
 type ShopOrderRepositoryImpl struct {
@@ -20,11 +21,11 @@ func NewShopOrderRepository(db *sql.DB) ShopOrderRepository {
 	return &ShopOrderRepositoryImpl{DB: db}
 }
 
-func (r *ShopOrderRepositoryImpl) SaveCart(orderID string, userID string, merchantID string, items []string, status string) error {
-	// Simpan array "items" langsung pake pq.Array(items)
-	query := `INSERT INTO shop_orders (order_id, user_id, merchant_id, items, status) VALUES ($1, $2, $3, $4, $5)`
+func (r *ShopOrderRepositoryImpl) SaveCart(cart *model.ShoppingCart) error {
+	query := `INSERT INTO shop_orders (order_id, user_id, merchant_id, items, total_price, delivery_address, payment_status, status) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	_, err := r.DB.Exec(query, orderID, userID, merchantID, pq.Array(items), status)
+	_, err := r.DB.Exec(query, cart.OrderID, cart.UserID, cart.MerchantID, pq.Array(cart.Items), cart.TotalPrice, cart.DeliveryAddress, cart.PaymentStatus, cart.Status)
 	if err != nil {
 		return fmt.Errorf("failed to insert shop order data: %v", err)
 	}

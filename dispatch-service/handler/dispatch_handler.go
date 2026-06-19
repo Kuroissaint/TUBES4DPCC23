@@ -20,8 +20,8 @@ type CreateOrderRequest struct {
 type LocationServiceResponse struct {
 	Status  string `json:"status"`
 	Drivers []struct {
-		DriverID       string  `json:"driver_id"`
-		DistanceMeters float64 `json:"distance_meters"`
+		DriverID       string      `json:"driver_id"`
+		DistanceMeters interface{} `json:"distance_meters"`
 	} `json:"drivers"`
 }
 
@@ -50,14 +50,14 @@ func (h *DispatchHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// AMBIL URL LOCATION SERVICE DARI ENVIRONMENT (Sesuai taktik agar dinamis lokal vs cloud)
+	// AMBIL URL LOCATION SERVICE DARI ENVIRONMENT
 	locationServiceURL := os.Getenv("LOCATION_SERVICE_URL")
 	if locationServiceURL == "" {
 		locationServiceURL = "http://localhost:8002" // Default ke port lokal kamu
 	}
 
-	// TEMBAK API LOCATION SERVICE secara sinkronus antar-microservice
-	apiURL := fmt.Sprintf("%s/api/location/nearby?lat=%f&lon=%f", locationServiceURL, req.PickupLat, req.PickupLon)
+	// === SINKRONISASI TEMBAKAN ANTAR-SERVICE: Ubah ke path baru /location/nearby ===
+	apiURL := fmt.Sprintf("%s/location/nearby?lat=%f&lon=%f", locationServiceURL, req.PickupLat, req.PickupLon)
 	resp, err := http.Get(apiURL)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -77,7 +77,7 @@ func (h *DispatchHandler) CreateOrderHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Ambil driver urutan pertama (paling dekat hasilnya)
+	// Ambil driver urutan pertama (paling dekat hasilnya karena sudah di-sorting oleh location-service)
 	driverTerpilih := locResp.Drivers[0]
 
 	w.WriteHeader(http.StatusOK)
