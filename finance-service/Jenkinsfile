@@ -60,16 +60,6 @@ pipeline {
         }
     }
 
-    post {
-        success {
-            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
-        }
-        failure {
-            echo "Deployment failed! Check logs."
-        }
-    }
-
-
         stage('6. Push Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
