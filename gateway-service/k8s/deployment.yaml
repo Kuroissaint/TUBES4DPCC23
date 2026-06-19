@@ -17,6 +17,8 @@ spec:
         image: ojektubesregistry.azurecr.io/gateway-service:latest
         ports:
         - containerPort: 8080
+      imagePullSecrets:
+      - name: kuncimudrik
 ---
 apiVersion: v1
 kind: Service

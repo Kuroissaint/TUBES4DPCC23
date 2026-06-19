@@ -1,11 +1,34 @@
 pipeline {
     agent any
-    
+    environment {
+        // Sesuaikan dengan nama Azure Registry & Cluster
+        REGISTRY_NAME = 'acktubes.azurecr.io'
+        SERVICE_NAME  = 'dispatch-service'
+        IMAGE_TAG     = "latest"
+    }
     stages {
         stage('Deploy Dispatch Service to AKS') {
             steps {
-                // Memastikan Jenkins mengeksekusi manifes dispatch-service yang baru di-update Mudrik
-                sh 'kubectl apply -f dispatch-service/deployment.yaml'
+                echo 'Mengambil kode terbaru dari GitHub...'
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                echo "Membungkus aplikasi menjadi Docker Image..."
+                bat "docker build -t ${REGISTRY_NAME}/${SERVICE_NAME}:${IMAGE_TAG} ./"
+            }
+        }
+        stage('Push to Azure ACR') {
+            steps {
+                echo "Mengunggah Image ke Azure Container Registry..."
+                // Azure Login dan Docker Push dijalankan di sini oleh robot Jenkins
+                bat "docker push ${REGISTRY_NAME}/${SERVICE_NAME}:${IMAGE_TAG}"
+            }
+        }
+        stage('Deploy to Azure AKS') {
+            steps {
+                echo "Memperbarui Pods di Azure Kubernetes Service..."
+                bat "kubectl apply -f k8s/deployment.yaml"
             }
         }
     }
