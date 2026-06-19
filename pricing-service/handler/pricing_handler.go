@@ -29,7 +29,7 @@ func (h *PricingHandler) CalculatePriceHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	finalPrice, err := h.pricingService.CalculateFinalPrice(req.OriginalPrice, req.PromoCode, req.Lat1, req.Lon1, req.Lat2, req.Lon2)
+	finalPrice, err := h.pricingService.CalculateFinalPrice(req.OriginalPrice, req.PromoCode)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
