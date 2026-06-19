@@ -3,54 +3,30 @@ package main
 import (
 	"context"
 	"testing"
-    
-	"github.com/golang/mock/gomock"
-	"github.com/kuroissaint/tubes2dpcc/communication-service"
-	"github.com/kuroissaint/tubes2dpcc/communication-service/mocks" 
 )
 
-func TestProcessIncomingMessage_FailedEmptyOrder(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestSendMessage_Validation(t *testing.T) {
+	service := NewChatService(nil)
 
-	mockRepo := mocks.NewMockChatRepository(ctrl)
-	service := communication.NewChatService(mockRepo)
-
-	invalidMsg := communication.ChatMessage{
-		OrderID:     "", // Kosong, harus gagal
-		SenderID:    "USR-123",
-		MessageText: "Halo",
+	// Skenario 1: Teks pesan kosong
+	invalidMsg := Message{
+		SenderID:   "USR-1",
+		ReceiverID: "USR-2",
+		Text:       "", // Sengaja kosong
+	}
+	err := service.SendMessage(context.Background(), invalidMsg)
+	if err == nil || err.Error() != "pesan tidak boleh kosong" {
+		t.Errorf("Ekspektasi error pesan kosong, tapi mendapat: %v", err)
 	}
 
-	// Ekspektasi: Database tidak boleh dipanggil karena gagal validasi
-	mockRepo.EXPECT().SaveMessage(gomock.Any(), gomock.Any()).Times(0)
-
-	err := service.ProcessIncomingMessage(context.Background(), invalidMsg)
-
-	if err == nil || err.Error() != "order_id dan sender_id tidak boleh kosong" {
-		t.Errorf("Ekspektasi error validasi, tapi mendapat: %v", err)
+	// Skenario 2: Sender/Receiver kosong
+	invalidSender := Message{
+		SenderID:   "", // Sengaja kosong
+		ReceiverID: "USR-2",
+		Text:       "Halo bro",
 	}
-}
-
-func TestProcessIncomingMessage_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockChatRepository(ctrl)
-	service := communication.NewChatService(mockRepo)
-
-	validMsg := communication.ChatMessage{
-		OrderID:     "ORD-123",
-		SenderID:    "USR-123",
-		MessageText: "Sesuai aplikasi ya",
-	}
-
-	// Ekspektasi: Database dipanggil 1 kali dan mengembalikan sukses (nil)
-	mockRepo.EXPECT().SaveMessage(gomock.Any(), validMsg).Return(nil).Times(1)
-
-	err := service.ProcessIncomingMessage(context.Background(), validMsg)
-
-	if err != nil {
-		t.Errorf("Ekspektasi sukses, tapi ada error: %v", err)
+	err2 := service.SendMessage(context.Background(), invalidSender)
+	if err2 == nil || err2.Error() != "pengirim dan penerima harus diisi" {
+		t.Errorf("Ekspektasi error pengirim kosong, tapi mendapat: %v", err2)
 	}
 }

@@ -16,10 +16,10 @@ spec:
     spec:
       containers:
       - name: communication-service
-        image: my-registry/communication-service:latest
+        image: kelcloud23/communication-service:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8005
+        - containerPort: 8009
         env:
         - name: DB_HOST
           value: "cassandra-cluster" # Nama database

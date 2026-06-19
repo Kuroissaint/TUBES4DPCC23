@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 # Copy mod dan sum
@@ -19,7 +19,7 @@ WORKDIR /app
 # Copy binary dari stage builder
 COPY --from=builder /app/communication-service .
 
-# Expose port (misal 8005)
-EXPOSE 8005
+# Expose port (misal 8009)
+EXPOSE 8009
 
 CMD ["./communication-service"]
