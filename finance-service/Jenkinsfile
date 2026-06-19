@@ -1,9 +1,11 @@
 pipeline {
     agent any
 
+        pipeline {
+    agent any
+
     environment {
-        // 1. UBAH NAMA SERVICE DI SINI
-        SERVICE_NAME = "finance-service" 
+        SERVICE_NAME = "pricing-service"
         DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
     }
 
@@ -14,45 +16,62 @@ pipeline {
             }
         }
 
-        stage('2. Unit Tests') {
+        stage('2. Go Validation') {
             steps {
-                dir('finance-service') { 
-                    // Tetap bypass agar tidak gagal di tengah jalan
-                    bat 'set GOWORK=off && go test ./... -v || exit 0'
-                }
-            }
-        }
-        stage('3. Lint / Vet') {
-            steps {
-                dir('finance-service') {
-                    // Tetap bypass agar tidak gagal
-                    bat 'set GOWORK=off && go vet ./... || exit 0'
-                }
-            }
-        }
-        stage('4. Build Image (Lokal)') {
-            steps {
-                dir('finance-service') {
-                    // PANCING DOWNLOAD DI HOST (Mesin Jenkins)
-                    // Ini pasti jalan karena mesin host biasanya lancar internetnya
-                    bat 'go mod download'
-                    
-                    // Sekarang baru build docker
-                    bat 'docker build -t kelcloud23/finance-service:17 .'
-                }
-            }
-        }
-
-        stage('5. Functional Tests') {
-            steps {
-                dir('finance-service') {
+                dir('pricing-service') {
                     bat '''
                         set GOWORK=off
-                        go test -tags=functional ./... -v || exit 0
+                        go vet ./...
+                        go test ./... -v
                     '''
                 }
             }
         }
+
+        stage('3. Build Image') {
+            steps {
+                dir('pricing-service') {
+                    bat "docker build -t ${DOCKER_IMAGE} ."
+                }
+            }
+        }
+
+        stage('4. Push Image') {
+            steps {
+                // Pastikan credentialsId 'dockerhub-login' sudah ada di Jenkins
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    bat '''
+                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                        docker push ''' + DOCKER_IMAGE
+                }
+            }
+        }
+
+        stage('5. Deploy & Verify') {
+            steps {
+                dir('pricing-service') {
+                    // Pastikan credentialsId 'k8s-config' sudah ada di Jenkins
+                    withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
+                        bat """
+                            kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/
+                            kubectl --kubeconfig="%KUBECONFIG_TMP%" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}
+                            kubectl --kubeconfig="%KUBECONFIG_TMP%" rollout status deployment/${SERVICE_NAME} --timeout=60s || exit 0
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully deployed ${SERVICE_NAME} version ${env.BUILD_NUMBER}"
+        }
+        failure {
+            echo "Deployment failed! Check logs."
+        }
+    }
+}
 
         stage('6. Push Image') {
             steps {
