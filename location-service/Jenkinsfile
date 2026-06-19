@@ -1,34 +1,13 @@
 pipeline {
     agent any
-    environment {
-        // Sesuaikan dengan nama Azure Registry & Cluster kelompokmu nanti
-        REGISTRY_NAME = 'acktubes.azurecr.io'
-        SERVICE_NAME  = 'location-service' // Ganti jadi 'dispatch-service' di folder dispatch
-        IMAGE_TAG     = "latest"
-    }
+    
     stages {
-        stage('Checkout Code') {
+        // Tahap build & push docker biasanya dilewati karena memakai image dari ACR milik Mudrik
+        
+        stage('Deploy Location Service to AKS') {
             steps {
-                echo 'Mengambil kode terbaru dari GitHub...'
-            }
-        }
-        stage('Docker Build') {
-            steps {
-                echo "Membungkus aplikasi menjadi Docker Image..."
-                sh "docker build -t ${REGISTRY_NAME}/${SERVICE_NAME}:${IMAGE_TAG} ./"
-            }
-        }
-        stage('Push to Azure ACR') {
-            steps {
-                echo "Mengunggah Image ke Azure Container Registry..."
-                // Azure Login dan Docker Push dijalankan di sini oleh robot Jenkins
-                sh "docker push ${REGISTRY_NAME}/${SERVICE_NAME}:${IMAGE_TAG}"
-            }
-        }
-        stage('Deploy to Azure AKS') {
-            steps {
-                echo "Memperbarui Pods di Azure Kubernetes Service..."
-                sh "kubectl apply -f k8s/deployment.yaml"
+                // Memastikan Jenkins mengeksekusi manifes location-service yang baru di-update Mudrik
+                sh 'kubectl apply -f location-service/deployment.yaml'
             }
         }
     }

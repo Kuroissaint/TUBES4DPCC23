@@ -13,7 +13,7 @@ spec:
         app: location-service
     spec:
       imagePullSecrets:
-      - name: kuncimudrik # <-- BIAR AKS TEMENMU BISA TEMBUS ACR LU
+      - name: kuncimudrik
       containers:
       - name: location-service
         image: ojektubesregistry.azurecr.io/location-service:latest
@@ -29,7 +29,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: location-service-service # <-- INI NAMANYA UDAH DISAMAIN BIAR DISPATCH GAK NYASAR
+  name: location-service-service
 spec:
   type: ClusterIP
   ports:
