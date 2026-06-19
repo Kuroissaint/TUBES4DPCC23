@@ -64,12 +64,14 @@ func (h *TranslogHandler) CreateTransportOrderHandler(w http.ResponseWriter, r *
 	})
 }
 
+// PERBAIKAN: Tambahkan Fee dan UserID agar bisa diambil dari body request
 type UpdateTranslogPayload struct {
-	OrderID string `json:"order_id"`
-	Status  string `json:"status"`
+	OrderID string  `json:"order_id"`
+	Status  string  `json:"status"`
+	Fee     float64 `json:"fee"`
+	UserID  string  `json:"user_id"`
 }
 
-// Tambahkan di bagian bawah file:
 func (h *TranslogHandler) UpdateStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -82,7 +84,8 @@ func (h *TranslogHandler) UpdateStatusHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err := h.translogService.UpdateDeliveryStatus(payload.OrderID, payload.Status)
+	// PERBAIKAN: Mengirim 4 parameter sesuai kebutuhan interface
+	err := h.translogService.UpdateDeliveryStatus(payload.OrderID, payload.Status, payload.Fee, payload.UserID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -94,4 +97,3 @@ func (h *TranslogHandler) UpdateStatusHandler(w http.ResponseWriter, r *http.Req
 		"message": "Status pengiriman berhasil diupdate",
 	})
 }
-
