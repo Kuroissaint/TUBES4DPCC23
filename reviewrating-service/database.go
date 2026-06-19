@@ -17,7 +17,7 @@ func ConnectDB() *mongo.Database {
 	log.Println("==== HALO! SAYA SEDANG MENCOBA KONEK KE LOCALHOST ====")
 
 	// Menyambung ke MongoDB di Kubernetes dengan username & password
-	clientOptions := options.Client().ApplyURI("mongodb://admin:password@mongodb-cluster:27017")
+ 	clientOptions := options.Client().ApplyURI("mongodb://mongodb:27017")
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal("Gagal konek ke MongoDB:", err)
