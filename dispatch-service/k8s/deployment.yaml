@@ -12,6 +12,8 @@ spec:
       labels:
         app: dispatch-service
     spec:
+      imagePullSecrets:
+      - name: kuncimudrik # <-- BIAR AKS TEMENMU BISA TEMBUS ACR LU
       containers:
       - name: dispatch-service
         image: ojektubesregistry.azurecr.io/dispatch-service:v100
@@ -24,7 +26,7 @@ spec:
         - name: MONGO_URI
           value: "mongodb://mongodb-service:27017"
         - name: LOCATION_SERVICE_URL
-          value: "http://location-service-service:8002/location"
+          value: "http://location-service-service:8002" # <-- DIREDIREKSI KE ALAMAT LOCATION YANG BENAR
 ---
 apiVersion: v1
 kind: Service

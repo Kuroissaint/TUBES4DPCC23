@@ -12,10 +12,12 @@ spec:
       labels:
         app: location-service
     spec:
+      imagePullSecrets:
+      - name: kuncimudrik # <-- BIAR AKS TEMENMU BISA TEMBUS ACR LU
       containers:
       - name: location-service
-        # Sudah diganti pakai nama Azure Container Registry milikmu
         image: ojektubesregistry.azurecr.io/location-service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8002
         env:
@@ -27,7 +29,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: location-service-cluster
+  name: location-service-service # <-- INI NAMANYA UDAH DISAMAIN BIAR DISPATCH GAK NYASAR
 spec:
   type: ClusterIP
   ports:
