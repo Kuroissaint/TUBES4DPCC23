@@ -73,6 +73,7 @@ stage('6. Push Image') {
                 dir('account-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
                         bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" set image deployment/gateway-service gateway-service=kelcloud23/gateway-service:latest'
                     }
                 }
             }
