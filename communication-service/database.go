@@ -14,7 +14,7 @@ func ConnectDB() *mongo.Database {
 	defer cancel()
 
 	// Langsung pakai localhost untuk tes lokal
-	clientOptions := options.Client().ApplyURI("mongodb://admin:password@mongodb-cluster:27017")
+	clientOptions := options.Client().ApplyURI("mongodb://mongodb:27017")
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal("Gagal konek ke MongoDB:", err)
