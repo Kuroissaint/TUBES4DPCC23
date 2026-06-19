@@ -12,9 +12,11 @@ spec:
       labels:
         app: pricing-service
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
         - name: pricing-service
-          image: kelcloud23/pricing-service:latest # Akan di-replace otomatis oleh Jenkins
+          image: pricingfinance.azurecr.io/pricing-service:latest
           ports:
             - containerPort: 8087
           env:
