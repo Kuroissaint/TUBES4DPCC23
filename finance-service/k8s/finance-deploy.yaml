@@ -12,9 +12,11 @@ spec:
       labels:
         app: finance-service
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
         - name: finance-service
-          image: kelcloud23/finance-service:latest # Akan di-replace otomatis oleh Jenkins
+          image: pricingfinance.azurecr.io/finance-service:latest
           ports:
             - containerPort: 8080
           env:
