@@ -87,8 +87,8 @@ pipeline {
                         // 2. Cek event deployment untuk melihat pesan error dari Kubernetes
                         bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" describe deployment pricing-service'
 
-                        // 3. Perintah aslimu (yang bikin timeout)
-                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" rollout status deployment/pricing-service --timeout=60s'
+                        // 3. Waktu tunggu diperpanjang jadi 180 detik biar K8s bisa nafas dulu
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" rollout status deployment/pricing-service --timeout=180s'
                     }
                 }
             }
