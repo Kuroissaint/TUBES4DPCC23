@@ -28,7 +28,7 @@ kind: Service
 metadata:
   name: pricing-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: pricing-service
   ports:

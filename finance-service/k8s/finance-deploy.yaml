@@ -28,7 +28,7 @@ kind: Service
 metadata:
   name: finance-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: finance-service
   ports:
