@@ -37,24 +37,51 @@ func (s *TranslogServiceImpl) CreateTransportOrder(order *model.TransportOrder) 
 		return nil, err
 	}
 
-	// 2. OTOMATIS MEMANGGIL DISPATCH SERVICE (Mencari Driver)
+	// 2. OTOMATIS MEMANGGIL PRICING LALU DISPATCH
 	if order.Status == "SEARCHING" {
-		go func() { // Gunakan Goroutine agar berjalan di background (Fire and Forget)
+		go func() {
+			// A. Nembak ke Pricing Service (Menghitung ongkir)
+			pricingPayload := map[string]interface{}{
+				"original_price": 0,
+				"promo_code":     "",
+				"lat1":           -6.200000, // Dummy coordinates as model only stores string address
+				"lon1":           106.816666,
+				"lat2":           -6.210000,
+				"lon2":           106.820000,
+			}
+			jsonDataPricing, _ := json.Marshal(pricingPayload)
+			pricingURL := "http://pricing-service:8087/api/pricing/calculate"
+			respPrice, errPrice := http.Post(pricingURL, "application/json", bytes.NewBuffer(jsonDataPricing))
+			
+			if errPrice == nil {
+				defer respPrice.Body.Close()
+				var priceResp map[string]interface{}
+				if json.NewDecoder(respPrice.Body).Decode(&priceResp) == nil {
+					if finalPrice, ok := priceResp["final_price"].(float64); ok {
+						order.Fee = finalPrice
+						// Here we could update the DB with the new Fee
+						fmt.Println("[SUCCESS] Harga didapatkan dari Pricing Service:", order.Fee)
+					}
+				}
+			} else {
+				fmt.Println("[WARNING] Gagal menghubungi Pricing Service:", errPrice)
+			}
+
+			// B. Nembak ke Dispatch Service
 			dispatchPayload := map[string]interface{}{
 				"order_id":        order.OrderID,
 				"service_type":    order.ServiceType,
 				"pickup_location": order.PickupLocation,
 			}
-			jsonData, _ := json.Marshal(dispatchPayload)
+			jsonDataDispatch, _ := json.Marshal(dispatchPayload)
 			
-			// Nembak ke internal DNS Kubernetes Dispatch
 			dispatchURL := "http://dispatch-service-service:8003/api/dispatch/find" 
-			resp, err := http.Post(dispatchURL, "application/json", bytes.NewBuffer(jsonData))
+			respDispatch, errDispatch := http.Post(dispatchURL, "application/json", bytes.NewBuffer(jsonDataDispatch))
 			
-			if err != nil {
-				fmt.Println("[WARNING] Gagal menghubungi Dispatch Service:", err)
+			if errDispatch != nil {
+				fmt.Println("[WARNING] Gagal menghubungi Dispatch Service:", errDispatch)
 			} else {
-				resp.Body.Close()
+				respDispatch.Body.Close()
 				fmt.Println("[SUCCESS] Perintah pencarian driver dikirim ke Dispatch!")
 			}
 		}()
