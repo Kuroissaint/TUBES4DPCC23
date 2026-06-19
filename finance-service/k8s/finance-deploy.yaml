@@ -13,8 +13,23 @@ spec:
         app: finance-service
     spec:
       containers:
-      - name: finance-service
-        image: finance-service:latest
-        imagePullPolicy: Never
-        ports:
-        - containerPort: 8080
+        - name: finance-service
+          image: kelcloud23/finance-service:latest # Akan di-replace otomatis oleh Jenkins
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              value: "postgres://kantin_admin:kantin123@postgres-service:5432/postgres?sslmode=disable"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-service
+spec:
+  type: ClusterIP
+  selector:
+    app: finance-service
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

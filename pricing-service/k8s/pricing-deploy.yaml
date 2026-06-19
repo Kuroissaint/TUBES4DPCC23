@@ -13,8 +13,23 @@ spec:
         app: pricing-service
     spec:
       containers:
-      - name: pricing-service
-        image: pricing-service:latest
-        imagePullPolicy: Never
-        ports:
-        - containerPort: 8080
+        - name: pricing-service
+          image: kelcloud23/pricing-service:latest # Akan di-replace otomatis oleh Jenkins
+          ports:
+            - containerPort: 8087
+          env:
+            - name: DB_URL
+              value: "postgres://kantin_admin:kantin123@postgres-service:5432/pricing_service_db?sslmode=disable"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pricing-service
+spec:
+  type: ClusterIP
+  selector:
+    app: pricing-service
+  ports:
+    - protocol: TCP
+      port: 8087
+      targetPort: 8087

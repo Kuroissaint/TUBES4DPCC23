@@ -4,7 +4,6 @@ pipeline {
     environment {
         SERVICE_NAME = "pricing-service"
         DOCKER_IMAGE = "kelcloud23/${SERVICE_NAME}:${env.BUILD_NUMBER}"
-        GOWORK = 'off'
     }
 
     stages {
@@ -17,7 +16,10 @@ pipeline {
         stage('2. Unit Tests') {
             steps {
                 dir('pricing-service') {
-                    bat 'go test ./... -v'
+                    bat '''
+                        set GOWORK=off
+                        go test ./... -v
+                    '''
                 }
             }
         }
@@ -25,7 +27,10 @@ pipeline {
         stage('3. Lint / Vet') {
             steps {
                 dir('pricing-service') {
-                    bat 'go vet ./...'
+                    bat '''
+                        set GOWORK=off
+                        go vet ./...
+                    '''
                 }
             }
         }
@@ -41,7 +46,10 @@ pipeline {
         stage('5. Functional Tests') {
             steps {
                 dir('pricing-service') {
-                    bat 'go test -tags=functional ./... -v'
+                    bat '''
+                        set GOWORK=off
+                        go test -tags=functional ./... -v
+                    '''
                 }
             }
         }
@@ -49,8 +57,9 @@ pipeline {
         stage('6. Push Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-login', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
-                    bat "docker push ${DOCKER_IMAGE}"
+                    bat '''
+                        docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                        docker push ''' + DOCKER_IMAGE
                 }
             }
         }
@@ -59,8 +68,10 @@ pipeline {
             steps {
                 dir('pricing-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/'
-                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}"
+                        bat """
+                            kubectl --kubeconfig="%KUBECONFIG_TMP%" apply -f k8s/
+                            kubectl --kubeconfig="%KUBECONFIG_TMP%" set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_IMAGE}
+                        """
                     }
                 }
             }
@@ -70,7 +81,14 @@ pipeline {
             steps {
                 dir('pricing-service') {
                     withCredentials([file(credentialsId: 'k8s-config', variable: 'KUBECONFIG_TMP')]) {
-                        bat "kubectl --kubeconfig=\"%KUBECONFIG_TMP%\" rollout status deployment/${SERVICE_NAME} --timeout=90s || exit 0"
+                        // 1. Cek status pod (Apakah CrashLoopBackOff, Error, dll)
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" get pods -l app=pricing-service'
+                        
+                        // 2. Cek event deployment untuk melihat pesan error dari Kubernetes
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" describe deployment pricing-service'
+
+                        // 3. Perintah aslimu (yang bikin timeout)
+                        bat 'kubectl --kubeconfig="%KUBECONFIG_TMP%" rollout status deployment/pricing-service --timeout=60s'
                     }
                 }
             }
