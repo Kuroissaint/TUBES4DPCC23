@@ -20,15 +20,11 @@ func main() {
 	mux.HandleFunc("/dispatch/order", hdl.CreateOrderHandler)
 
 	// 2. Rute pembantu untuk cek status pod (Hanya merespon jika pas "/dispatch" atau "/dispatch/")
-	mux.HandleFunc("/dispatch/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/dispatch" && r.URL.Path != "/dispatch/" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"success","message":"Dispatch Service Handler Terpasang dengan Rute Baru!"}`))
-	})
+	mux.HandleFunc("/dispatch", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte(`{"status":"success","message":"Dispatch Service Handler Terpasang!"}`))
+    })
 
 	port := os.Getenv("SERVICE_PORT")
 	if port == "" {

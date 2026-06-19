@@ -35,20 +35,15 @@ func main() {
 	hdl := handler.NewLocationHandler(svc)
 
 	// 3. BALIKIN KE RUTE PANJANG ASLI BAWAAN (Biar lurus sama Gateway lu)
-	http.HandleFunc("/location/api/location/distance", hdl.CalculateDistanceHandler)
-	http.HandleFunc("/location/api/location/update", hdl.UpdateLocationHandler)
-	http.HandleFunc("/location/api/location/nearby", hdl.GetNearbyDriversHandler)
-
+	http.HandleFunc("/location/distance", hdl.CalculateDistanceHandler)
+    http.HandleFunc("/location/update", hdl.UpdateLocationHandler)
+    http.HandleFunc("/location/nearby", hdl.GetNearbyDriversHandler)
 	// 4. RUTE CATCH-ALL UNTUK CEK KESEHATAN SERVICE
-	http.HandleFunc("/location/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/location" && r.URL.Path != "/location/" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"success","message":"Location Service is running smoothly with MongoDB"}`))
-	})
+	http.HandleFunc("/location", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte(`{"status":"success","message":"Location Service is running smoothly with MongoDB"}`))
+    })
 
 	// 5. JALANKAN SERVER
 	port := os.Getenv("SERVICE_PORT")
