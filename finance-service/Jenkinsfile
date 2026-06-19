@@ -68,7 +68,7 @@ pipeline {
             echo "Deployment failed! Check logs."
         }
     }
-}
+
 
         stage('6. Push Image') {
             steps {
@@ -92,7 +92,6 @@ pipeline {
                 }
             }
         }
-    }
 
     post {
         success {
