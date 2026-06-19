@@ -2,44 +2,35 @@ package handler
 
 import (
 	"encoding/json"
-	"net/http"
-
 	"finance-service/model"
 	"finance-service/service"
+	"net/http"
 )
 
 type WalletHandler struct {
-	walletService *service.WalletService
+	ws *service.WalletService
 }
 
 func NewWalletHandler(ws *service.WalletService) *WalletHandler {
-	return &WalletHandler{walletService: ws}
+	return &WalletHandler{ws: ws}
 }
 
 func (h *WalletHandler) TopUpHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req model.TopUpRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	newBalance, err := h.walletService.TopUpWallet(req.UserID, req.Amount)
+	newBalance, err := h.ws.ProcessTopUp(req.UserID, req.Amount, req.PromoCode)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":      "success",
-		"message":     "top-up successful",
+		"status": "success",
 		"new_balance": newBalance,
 	})
 }
